@@ -6,7 +6,7 @@ y0=l1*sint1;
 dx0=diff(x0,x1)*dx1+diff(x0,x2)*dx2;
 dy0=diff(y0,x1)*dx1+diff(y0,x2)*dx2;
 
-U=-g*(m0*y0+(lp*cos(tp)+y0)*mp);
+U=-g*(m0*y0+(lp*sin(tp)+y0)*mp);
 T=1/2*m1*dx1^2+1/2*m2*dx2^2+1/2*m0*(dx0^2+dy0^2)+1/2*mp*((dx0-lp*sin(tp)*dtp)^2+(dy0+lp*cos(tp)*dtp)^2);
 
 L=T-U;
@@ -45,7 +45,9 @@ LHS=subs(LHS,[t],[1]);
 A=[A1;A2;A3];
 b=[b1;b2;b3];
 
-Ap=subs(A,[l1,l2,lp,m1,m2,m0,mp,g],[1,1,1,1,1,1,1,-10])
-bp=subs(b,[l1,l2,lp,m1,m2,m0,mp,g],[1,1,1,1,1,1,1,-10])
+Ap=subs(A,[l1,l2,lp,m1,m2,m0,mp,g],[1,1,1,1,1,1,1,-10]);
+bp=subs(b,[l1,l2,lp,m1,m2,m0,mp,g],[1,1,1,1,1,1,1,-10]);
+
+final = inv(Ap)\bp;
 
 
