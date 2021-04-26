@@ -210,14 +210,14 @@ def update_reference(_, newref):
 
 
 # callback for simulation
-pyglet.clock.schedule_interval(simulate, DT)
-pyglet.clock.schedule_interval(update_state_label, 0.25)
+pyglet.clock.schedule_interval(simulate, .1)
+# pyglet.clock.schedule_interval(update_state_label, 0.25)
 
-# schedule some small movements by updating our reference
-pyglet.clock.schedule_once(update_reference, 2, 0.2)
-pyglet.clock.schedule_once(update_reference, 7, 0.6)
-pyglet.clock.schedule_once(update_reference, 12, 0.2)
-pyglet.clock.schedule_once(update_reference, 17, 0.0)
+# # schedule some small movements by updating our reference
+# pyglet.clock.schedule_once(update_reference, 2, 0.2)
+# pyglet.clock.schedule_once(update_reference, 7, 0.6)
+# pyglet.clock.schedule_once(update_reference, 12, 0.2)
+# pyglet.clock.schedule_once(update_reference, 17, 0.0)
 
 pyglet.app.run()
 
