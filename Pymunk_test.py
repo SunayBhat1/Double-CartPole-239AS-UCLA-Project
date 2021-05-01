@@ -65,6 +65,18 @@ pend2_shape = pymunk.Poly.create_box(pend2_body, pend2_size)
 pend2_shape.filter = fil
 space.add(pend2_body, pend2_shape)
 
+# pendulum 3
+pend3_length = 0.3  # to center of mass
+pend3_size = 0.01, pend3_length * 2  # to get CoM at 0.6 m
+pend3_mass = .4
+pend3_moment = pymunk.moment_for_box(pend3_mass, pend3_size)
+pend3_body = pymunk.Body(mass=pend3_mass, moment=pend3_moment)
+pend3_body.angle=0
+pend3_body.position = 0, -2*pend1_length*math.sin(pend1_body.angle)+cart1_size[1]/2+pend3_length-.05
+pend3_shape = pymunk.Poly.create_box(pend3_body, pend3_size)
+pend3_shape.filter = fil
+space.add(pend3_body, pend3_shape)
+
 # joint
 joint1 = pymunk.constraints.PivotJoint(cart1_body, pend1_body, cart1_body.position + (0, cart1_size[1] / 2))
 joint1.collide_bodies = False
@@ -81,6 +93,10 @@ joint3 = pymunk.constraints.PivotJoint(pend1_body, pend2_body, (0,-2*pend1_lengt
 joint3.collide_bodies = True
 space.add(joint3)
 
+# joint 4
+joint4 = pymunk.constraints.PivotJoint(pend1_body, pend3_body, (0,-2*pend1_length*math.sin(pend1_body.angle)+cart1_size[1]/2))
+joint4.collide_bodies = True
+space.add(joint4)
 
 print(f"cart mass = {cart1_body.mass:0.1f} kg")
 print(f"pendulum mass = {pend1_body.mass:0.1f} kg, pendulum moment = {pend1_body.moment:0.3f} kg*m^2")
@@ -161,6 +177,7 @@ def on_draw():
     draw_body(offset, pend1_body)
     draw_body(offset, cart2_body)
     draw_body(offset, pend2_body)
+    draw_body(offset, pend3_body)
     draw_point(offset,[0,-2*pend1_length*math.sin(pend1_body.angle)+cart1_size[1]/2])
     draw_ground(offset)
 
