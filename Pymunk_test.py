@@ -25,17 +25,17 @@ cart1_mass = 0.5
 cart1_size = 0.3, 0.2
 cart1_moment = pymunk.moment_for_box(cart1_mass, cart1_size)
 cart1_body = pymunk.Body(mass=cart1_mass, moment=cart1_moment)
-cart1_body.position = -0.3, cart1_size[1] / 2
+cart1_body.position = -.75, cart1_size[1] / 2
 cart1_shape = pymunk.Poly.create_box(cart1_body, cart1_size)
 cart1_shape.friction = ground.friction
 space.add(cart1_body, cart1_shape)
 
-# cart 1
+# cart 2
 cart2_mass = 0.5
 cart2_size = 0.3, 0.2
 cart2_moment = pymunk.moment_for_box(cart2_mass, cart2_size)
 cart2_body = pymunk.Body(mass=cart1_mass, moment=cart2_moment)
-cart2_body.position = 0.3, cart1_size[1] / 2
+cart2_body.position = .75, cart1_size[1] / 2
 cart2_shape = pymunk.Poly.create_box(cart2_body, cart2_size)
 cart2_shape.friction = ground.friction
 space.add(cart2_body, cart2_shape)
@@ -45,9 +45,10 @@ space.add(cart2_body, cart2_shape)
 pend1_length = 0.6  # to center of mass
 pend1_size = 0.01, pend1_length * 2  # to get CoM at 0.6 m
 pend1_mass = 0.2
-pend1_moment = 0.001
+pend1_moment = pymunk.moment_for_box(pend1_mass, pend1_size)
 pend1_body = pymunk.Body(mass=pend1_mass, moment=pend1_moment)
-pend1_body.position = cart1_body.position[0], cart1_body.position[1] + cart1_size[1] / 2 + pend1_length
+pend1_body.angle=-math.pi/4
+pend1_body.position = cart1_body.position[0]+pend1_length*math.cos(pend1_body.angle), cart1_body.position[1] + cart1_size[1] / 2 -pend1_length*math.sin(pend1_body.angle)
 pend1_shape = pymunk.Poly.create_box(pend1_body, pend1_size)
 pend1_shape.filter = fil
 space.add(pend1_body, pend1_shape)
@@ -55,10 +56,11 @@ space.add(pend1_body, pend1_shape)
 # pendulum 2
 pend2_length = 0.6  # to center of mass
 pend2_size = 0.01, pend2_length * 2  # to get CoM at 0.6 m
-pend2_mass = 0.2
-pend2_moment = 0.001
+pend2_mass = .2
+pend2_moment = pymunk.moment_for_box(pend2_mass, pend2_size)
 pend2_body = pymunk.Body(mass=pend2_mass, moment=pend2_moment)
-pend2_body.position = cart2_body.position[0], cart2_body.position[1] + cart2_size[1] / 2 + pend2_length
+pend2_body.angle=-3*math.pi/4
+pend2_body.position = cart2_body.position[0]+pend2_length*math.cos(pend2_body.angle), cart2_body.position[1] + cart2_size[1] / 2 - pend2_length*math.sin(pend2_body.angle)
 pend2_shape = pymunk.Poly.create_box(pend2_body, pend2_size)
 pend2_shape.filter = fil
 space.add(pend2_body, pend2_shape)
@@ -68,15 +70,17 @@ joint1 = pymunk.constraints.PivotJoint(cart1_body, pend1_body, cart1_body.positi
 joint1.collide_bodies = False
 space.add(joint1)
 
+
 # joint 2
 joint2 = pymunk.constraints.PivotJoint(cart2_body, pend2_body, cart2_body.position + (0, cart1_size[1] / 2))
 joint2.collide_bodies = False
 space.add(joint2)
 
 # joint 3
-joint3 = pymunk.constraints.PivotJoint(pend1_body, pend2_body, (0,cart1_size[1] / 2 + 0.5916))
+joint3 = pymunk.constraints.PivotJoint(pend1_body, pend2_body, (0,-2*pend1_length*math.sin(pend1_body.angle)+cart1_size[1]/2))
 joint3.collide_bodies = True
 space.add(joint3)
+
 
 print(f"cart mass = {cart1_body.mass:0.1f} kg")
 print(f"pendulum mass = {pend1_body.mass:0.1f} kg, pendulum moment = {pend1_body.moment:0.3f} kg*m^2")
@@ -141,17 +145,23 @@ def draw_ground(offset):
     data = ('v2i', tuple(points))
     pyglet.graphics.draw(len(vertices), pyglet.gl.GL_LINES, data)
 
+def draw_point(offset,point):
+    point[0]=(int(point[0] * PPM) + offset[0])-1
+    point[1]=(int(point[1] * PPM) + offset[1])-1
+    points=[point[0],point[1],point[0]+2,point[1],point[0]+2,point[1]+2,point[0],point[1]+2]
+    pyglet.graphics.draw(4, pyglet.gl.GL_LINE_LOOP,('v2i',tuple(points)))
 
 @window.event
 def on_draw():
     window.clear()
 
     # center view x around 0
-    offset = (500, 5)
+    offset = (500, 250)
     draw_body(offset, cart1_body)
     draw_body(offset, pend1_body)
     draw_body(offset, cart2_body)
     draw_body(offset, pend2_body)
+    draw_point(offset,[0,-2*pend1_length*math.sin(pend1_body.angle)+cart1_size[1]/2])
     draw_ground(offset)
 
     for label in labels:
