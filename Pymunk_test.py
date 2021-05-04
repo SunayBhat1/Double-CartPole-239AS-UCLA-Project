@@ -1,6 +1,6 @@
 import csv
 import math
-import pymunk.pygame_util
+#import pymunk.pygame_util
 import pyglet
 import pymunk
 import pymunk.constraints
@@ -123,7 +123,7 @@ label_force = pyglet.text.Label(text='', font_size=18, color=color, x=10, y=SCRE
 labels = [label_x, label_ang, label_force]
 
 # data recorder so we can compare our results to our predictions
-f = open('data/invpend.csv', 'w')
+f = open('./Data/invpend.csv', 'w')
 out = csv.writer(f)
 out.writerow(['time', 'x', 'theta'])
 currtime = 0.0
@@ -167,6 +167,7 @@ def draw_point(offset,point):
     points=[point[0],point[1],point[0]+2,point[1],point[0]+2,point[1]+2,point[0],point[1]+2]
     pyglet.graphics.draw(4, pyglet.gl.GL_LINE_LOOP,('v2i',tuple(points)))
 
+
 @window.event
 def on_draw():
     window.clear()
@@ -176,7 +177,7 @@ def on_draw():
     draw_body(offset, cart1_body)
     draw_body(offset, pend1_body)
     draw_body(offset, cart2_body)
-    draw_body(offset, pend2_body)
+    #draw_body(offset, pend2_body)
     draw_body(offset, pend3_body)
     draw_point(offset,[0,-2*pend1_length*math.sin(pend1_body.angle)+cart1_size[1]/2])
     draw_ground(offset)
@@ -198,7 +199,7 @@ def simulate(_):
     velx = cart1_body.velocity[0]
     ang = pend1_body.angle
     angv = pend1_body.angular_velocity
-
+    print(posx, velx, ang, angv)
     # dump our data so we can plot
     if record_data:
         global currtime
@@ -235,7 +236,11 @@ def update_reference(_, newref):
     global ref
     ref = newref
 
+import time
 
+#while True:
+#    time.sleep(0.01)
+#    simulate()
 # callback for simulation
 pyglet.clock.schedule_interval(simulate, .1)
 # pyglet.clock.schedule_interval(update_state_label, 0.25)
