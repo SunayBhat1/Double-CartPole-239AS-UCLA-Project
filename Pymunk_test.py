@@ -30,7 +30,7 @@ cart1_shape = pymunk.Poly.create_box(cart1_body, cart1_size)
 cart1_shape.friction = ground.friction
 space.add(cart1_body, cart1_shape)
 
-# cart 1
+# cart 2
 cart2_mass = 0.5
 cart2_size = 0.3, 0.2
 cart2_moment = pymunk.moment_for_box(cart2_mass, cart2_size)
@@ -41,13 +41,14 @@ cart2_shape.friction = ground.friction
 space.add(cart2_body, cart2_shape)
 
 
-# pendulum
+# pendulum 1
 pend1_length = 0.6  # to center of mass
 pend1_size = 0.01, pend1_length * 2  # to get CoM at 0.6 m
 pend1_mass = 0.2
 pend1_moment = 0.001
 pend1_body = pymunk.Body(mass=pend1_mass, moment=pend1_moment)
-pend1_body.position = cart1_body.position[0], cart1_body.position[1] + cart1_size[1] / 2 + pend1_length
+pend1_body.position = (cart1_body.position[0], cart1_body.position[1] + cart1_size[1] / 2 + pend1_length)
+# pend1_body.rotation_vector = (0.0, 0.0)
 pend1_shape = pymunk.Poly.create_box(pend1_body, pend1_size)
 pend1_shape.filter = fil
 space.add(pend1_body, pend1_shape)
@@ -58,7 +59,7 @@ pend2_size = 0.01, pend2_length * 2  # to get CoM at 0.6 m
 pend2_mass = 0.2
 pend2_moment = 0.001
 pend2_body = pymunk.Body(mass=pend2_mass, moment=pend2_moment)
-pend2_body.position = cart2_body.position[0], cart2_body.position[1] + cart2_size[1] / 2 + pend2_length
+pend2_body.position = (cart2_body.position[0], cart2_body.position[1] + cart2_size[1] / 2 + pend2_length)
 pend2_shape = pymunk.Poly.create_box(pend2_body, pend2_size)
 pend2_shape.filter = fil
 space.add(pend2_body, pend2_shape)
