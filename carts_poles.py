@@ -13,6 +13,7 @@ class CartsPolesEnv(gym.Env):
         self._init_objects()
         self.dt = dt
         self.force_mag = 10
+        self.action_space = ((0,0),(0,1),(1,0),(1,1))
 
     def _init_objects(self):
         self.space = pymunk.Space()
@@ -105,14 +106,16 @@ class CartsPolesEnv(gym.Env):
         self.joint4.collide_bodies = True
         self.space.add(self.joint4)
         
-        print(f"cart mass = {self.cart1_body.mass:0.1f} kg")
-        print(f"pendulum mass = {self.pend1_body.mass:0.1f} kg, pendulum moment = {self.pend1_body.moment:0.3f} kg*m^2")
+        # print(f"cart mass = {self.cart1_body.mass:0.1f} kg")
+        # print(f"pendulum mass = {self.pend1_body.mass:0.1f} kg, pendulum moment = {self.pend1_body.moment:0.3f} kg*m^2")
         
 
-    def step(self, dt, action):
-        # action = [f1, f2]
-        # f1 = [1, -1, 0]
-        print(action)
+    def step(self, dt, action_select):
+        """
+        Take in and apply actions, step pymunk space, output new state variables, reward, and done
+        """
+        # print(self.action_space[action_select])
+        action = self.action_space[action_select]
         force_on_cart1, force_on_cart2 = action[0]*self.force_mag, action[1]*self.force_mag
 
         self.cart1_body.apply_force_at_local_point((force_on_cart1, 0.0), (0.0, 0.0))
@@ -134,14 +137,18 @@ class CartsPolesEnv(gym.Env):
 
         xp, yp = self.pend3_body.position[0], self.pend3_body.position[1]
 
-        self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
+        # self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
+        self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp)
         
+        # print('Pend 3 angle: ' ,self.state[8]*180/math.pi)
         
+        # Stopping condition (angle of pole 3 is in 60:300, ie. over 60 degrees from upright)
         done = bool(
-                t1 < -math.pi/2
-                or t2 > -math.pi / 2
-                or abs(tp) > math.pi / 8
+                tp > math.pi/3
+                and tp < 5*math.pi / 2
         )
+
+        # print(done)
 
         
         # action is the force to two carts, [f1, f2]

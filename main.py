@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
     global env 
     env = CartsPolesEnv()
-    pyglet.clock.schedule_interval(env.step, 0.2, action=(0,1))
+    pyglet.clock.schedule_interval(env.step, 0.2, action=(1,1))
     pyglet.app.run()
     #for _ in range(120):
     #    env.step(1)
