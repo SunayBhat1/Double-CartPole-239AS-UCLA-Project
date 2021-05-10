@@ -79,7 +79,6 @@ for episode in range(NUM_EPISODES):
 
         state_prime, reward, done = env.step(env.dt,action_prime)
 
-        env.render()
 
         # Linear SARSA update (Section 10.1, psuedocode) 
         td_update = (reward + GAMMA * Q_value(state_prime,action_prime,linear_weights)-Q_value(state,action,linear_weights)) * get_features(state,action)      

@@ -2,6 +2,7 @@
 DQN in PyTorch
 """
 import argparse
+from carts_poles import CartsPolesEnv
 import torch
 import torch.nn
 import numpy as np
@@ -10,6 +11,7 @@ import gym
 from collections import namedtuple
 from collections import deque
 from typing import List, Tuple
+import matplotlib.pyplot as plt
 
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -309,29 +311,38 @@ def epsilon_annealing(epsiode: int, max_episode: int, min_eps: float) -> float:
 def main():
     """Main
     """
-    try:
-        env = gym.make(FLAGS.env)
-        env = gym.wrappers.Monitor(env, directory="monitors", force=True)
-        rewards = deque(maxlen=100)
-        input_dim, output_dim = get_env_dim(env)
-        agent = Agent(input_dim, output_dim, FLAGS.hidden_dim)
-        replay_memory = ReplayMemory(FLAGS.capacity)
+    # try:
+    env = CartsPolesEnv()
+    # env = gym.wrappers.Monitor(env, directory="monitors", force=True)
+    rewards = np.zeros(FLAGS.n_episode)
+    input_dim, output_dim = get_env_dim(env)
+    agent = Agent(input_dim, output_dim, FLAGS.hidden_dim)
+    replay_memory = ReplayMemory(FLAGS.capacity)
 
-        for i in range(FLAGS.n_episode):
-            eps = epsilon_annealing(i, FLAGS.max_episode, FLAGS.min_eps)
-            r = play_episode(env, agent, replay_memory, eps, FLAGS.batch_size)
-            print("[Episode: {:5}] Reward: {:5} 𝜺-greedy: {:5.2f}".format(i + 1, r, eps))
+    for i in range(FLAGS.n_episode):
+        eps = epsilon_annealing(i, FLAGS.max_episode, FLAGS.min_eps)
+        r = play_episode(env, agent, replay_memory, eps, FLAGS.batch_size)
+        print("[Episode: {:5}] Reward: {:5} 𝜺-greedy: {:5.2f}".format(i + 1, r, eps))
 
-            rewards.append(r)
+        rewards[i] = r
 
-            if len(rewards) == rewards.maxlen:
+        # if len(rewards) == rewards.maxlen:
+        #     if np.mean(rewards) >= 200:
+        #         print("Game cleared in {} games with {}".format(i + 1, np.mean(rewards)))
+        #         break
 
-                if np.mean(rewards) >= 200:
-                    print("Game cleared in {} games with {}".format(i + 1, np.mean(rewards)))
-                    break
-    finally:
-        env.close()
-
+    # fig, (ax1, ax2) = plt.subplots(1, 2,figsize=(12,4), dpi= 100, facecolor='w', edgecolor='k')
+    plt.plot(range(0,FLAGS.n_episode),rewards)
+    # ax2.plot(range(0,n_episode),td_error,c='g')
+    plt.title("DQN Episode Length vs Episode")
+    # ax2.title.set_text("TD Error Convergence")
+    # fig.suptitle('DQN Control')
+    # ax1.set_xscale('log')
+    # ax2.set_xscale('log')
+    plt.grid()
+    # ax2.grid()
+    plt.show()
+# 
 
 if __name__ == '__main__':
     main()

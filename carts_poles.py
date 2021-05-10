@@ -8,7 +8,7 @@ import numpy as np
 
 class CartsPolesEnv(gym.Env):
 
-    def __init__(self, dt=1/100, force_mag=10):
+    def __init__(self, dt=1/100, force_mag=5):
         # dt is the simulation step
 
         #gym.Env.__init__(self)
@@ -33,6 +33,8 @@ class CartsPolesEnv(gym.Env):
                     2 * math.pi,
                     np.finfo(np.float32).max,
                     2 * math.pi,
+                    np.finfo(np.float32).max,
+                    np.finfo(np.float32).max,
                     np.finfo(np.float32).max],
                 dtype=np.float32)
 
@@ -193,12 +195,33 @@ class CartsPolesEnv(gym.Env):
         else:
             reward = 0
 
-        return self.state, reward, done
+        return np.array(self.state), reward, done, {}
 
     def reset(self):
         if self.space:
             del self.space
         self._init_objects()
 
-    def render(self, mode='human'):
-    
+        x1 = self.cart1_body.position[0]
+        x1_dot = self.cart1_body.velocity[0]
+        x2 = self.cart2_body.position[0]
+        x2_dot = self.cart2_body.position[0]
+        tp = self.pend3_body.angle
+        wp = self.pend3_body.angular_velocity
+
+        t1 = self.pend1_body.angle
+        w1 = self.pend1_body.angular_velocity
+
+        t2 = self.pend2_body.angle
+        w2 = self.pend2_body.angular_velocity
+
+        xp, yp = self.pend3_body.position[0], self.pend3_body.position[1]
+
+        self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
+
+        return np.array(self.state)
+
+    def close(self):
+        if self.viewer is not None:
+            self.viewer.close()
+            self.viewer = None
