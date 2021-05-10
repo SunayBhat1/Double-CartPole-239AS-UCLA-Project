@@ -13,7 +13,7 @@ https://github.com/ankitdhall/CartPole/blob/master/Qlearning-linear.py
 """
 
 #Hyperparms
-NUM_EPISODES = 10000
+NUM_EPISODES = 1
 MAX_T = 1000
 GAMMA = 0.7
 ALPHA = 0.1
@@ -78,6 +78,8 @@ for episode in range(NUM_EPISODES):
         action_prime = get_action(linear_weights,state)
 
         state_prime, reward, done = env.step(env.dt,action_prime)
+
+        env.render()
 
         # Linear SARSA update (Section 10.1, psuedocode) 
         td_update = (reward + GAMMA * Q_value(state_prime,action_prime,linear_weights)-Q_value(state,action,linear_weights)) * get_features(state,action)      

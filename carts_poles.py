@@ -1,7 +1,9 @@
 import math
 import pymunk
 import pymunk.constraints
+import pyglet
 import gym
+from gym import spaces, logger
 import numpy as np
 
 class CartsPolesEnv(gym.Env):
@@ -14,7 +16,34 @@ class CartsPolesEnv(gym.Env):
         self._init_objects()
         self.dt = dt
         self.force_mag = force_mag
-        self.action_space = ((0,0),(0,1),(1,0),(1,1),(0,-1),(-1,0),(-1,-1),(-1,1),(1,-1))
+
+        self.action_space = spaces.Discrete(9)
+        self.action_tuple = ((0,0),(0,1),(1,0),(1,1),(0,-1),(-1,0),(-1,-1),(-1,1),(1,-1))
+
+        # Angle at which to fail the episode
+        self.theta_threshold_radians = 12 * 2 * math.pi / 360
+        self.x_threshold = 4
+
+        high = np.array([self.x_threshold * 2,
+                    np.finfo(np.float32).max,
+                    self.x_threshold * 2,
+                    np.finfo(np.float32).max,
+                    2 * math.pi,
+                    np.finfo(np.float32).max,
+                    2 * math.pi,
+                    np.finfo(np.float32).max,
+                    2 * math.pi,
+                    np.finfo(np.float32).max],
+                dtype=np.float32)
+
+        self.observation_space = spaces.Box(-high, high, dtype=np.float32)
+
+        self.seed()
+        self.viewer = None
+        self.state = None
+
+        self.steps_beyond_done = None
+
 
     def _init_objects(self):
         self.space = pymunk.Space()
@@ -111,12 +140,11 @@ class CartsPolesEnv(gym.Env):
         # print(f"pendulum mass = {self.pend1_body.mass:0.1f} kg, pendulum moment = {self.pend1_body.moment:0.3f} kg*m^2")
         
 
-    def step(self, dt, action_select):
+    def step(self, action_select):
         """
         Take in and apply actions, step pymunk space, output new state variables, reward, and done
         """
-        # print(self.action_space[action_select])
-        action = self.action_space[action_select]
+        action = self.action_tuple[action_select]
         force_on_cart1, force_on_cart2 = action[0]*self.force_mag, action[1]*self.force_mag
 
         self.cart1_body.apply_force_at_local_point((force_on_cart1, 0.0), (0.0, 0.0))
@@ -138,9 +166,9 @@ class CartsPolesEnv(gym.Env):
 
         xp, yp = self.pend3_body.position[0], self.pend3_body.position[1]
 
-        # self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
+        self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
         # self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp)
-        self.state = (x1, x2, tp)
+        # self.state = (x1, x2, tp)
         
         # print('Pend 3 angle: ' ,self.state[8]*180/math.pi)
         # print('Cart 1 Body ' ,self.state[8]*180/math.pi)
@@ -171,3 +199,6 @@ class CartsPolesEnv(gym.Env):
         if self.space:
             del self.space
         self._init_objects()
+
+    def render(self, mode='human'):
+    
