@@ -2,18 +2,19 @@ import math
 import pymunk
 import pymunk.constraints
 import gym
+import numpy as np
 
 class CartsPolesEnv(gym.Env):
 
-    def __init__(self, dt=1/60, force_mag=10):
+    def __init__(self, dt=1/100, force_mag=10):
         # dt is the simulation step
 
         #gym.Env.__init__(self)
         super(CartsPolesEnv, self).__init__()
         self._init_objects()
         self.dt = dt
-        self.force_mag = 10
-        self.action_space = ((0,0),(0,1),(1,0),(1,1))
+        self.force_mag = force_mag
+        self.action_space = ((0,0),(0,1),(1,0),(1,1),(0,-1),(-1,0),(-1,-1),(-1,1),(1,-1))
 
     def _init_objects(self):
         self.space = pymunk.Space()
@@ -138,14 +139,18 @@ class CartsPolesEnv(gym.Env):
         xp, yp = self.pend3_body.position[0], self.pend3_body.position[1]
 
         # self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
-        self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp)
+        # self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp)
+        self.state = (x1, x2, tp)
         
         # print('Pend 3 angle: ' ,self.state[8]*180/math.pi)
+        # print('Cart 1 Body ' ,self.state[8]*180/math.pi)
         
-        # Stopping condition (angle of pole 3 is in 60:300, ie. over 60 degrees from upright)
+        # Stopping condition (angle of pole 3 is in 30:330, ie. over 60 degrees from upright)
         done = bool(
-                tp > math.pi/3
-                and tp < 5*math.pi / 2
+                tp > math.pi/6
+                and tp < 11*math.pi / 6
+
+                or yp < self.pend3_length/2
         )
 
         # print(done)
@@ -154,9 +159,9 @@ class CartsPolesEnv(gym.Env):
         # action is the force to two carts, [f1, f2]
         # f1 can be either [1, -1 , 0]
 
-
+        # abs(np.cos(tp))
         if not done:
-            reward = 1.0
+            reward = abs(np.cos(tp))
         else:
             reward = 0
 
