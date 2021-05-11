@@ -1,7 +1,6 @@
 import math
 import pymunk
 import pymunk.constraints
-import pyglet
 import gym
 from gym import spaces, logger
 import numpy as np
@@ -177,10 +176,11 @@ class CartsPolesEnv(gym.Env):
         
         # Stopping condition (angle of pole 3 is in 30:330, ie. over 60 degrees from upright)
         done = bool(
-                tp > math.pi/6
-                and tp < 11*math.pi / 6
+                tp > math.pi/8
+                and tp < 11*math.pi / 8
 
                 or yp < self.pend3_length/2
+                or x1>=4 or x1<=-4 or x2>=4 or x2<=-4
         )
 
         # print(done)
@@ -191,35 +191,80 @@ class CartsPolesEnv(gym.Env):
 
         # abs(np.cos(tp))
         if not done:
-            reward = abs(np.cos(tp))
+            reward = self.dt #abs(np.cos(tp))*self.dt
         else:
             reward = 0
 
         return np.array(self.state), reward, done, {}
 
-    def reset(self):
-        if self.space:
-            del self.space
-        self._init_objects()
+    def render(self, mode="human"):
+        PPM = 200.0
+        screen_width = 1000
+        screen_height = 700
 
-        x1 = self.cart1_body.position[0]
-        x1_dot = self.cart1_body.velocity[0]
-        x2 = self.cart2_body.position[0]
-        x2_dot = self.cart2_body.position[0]
-        tp = self.pend3_body.angle
-        wp = self.pend3_body.angular_velocity
+        world_width = self.x_threshold * 2
+        scale = screen_width/world_width
+        cart1y=self.cart1_body.position[1]*scale + screen_height / 2.0
+        cart2y=self.cart2_body.position[1]*scale + screen_height / 2.0
 
-        t1 = self.pend1_body.angle
-        w1 = self.pend1_body.angular_velocity
+        if self.viewer is None:
+            from gym.envs.classic_control import rendering
+            self.viewer = rendering.Viewer(screen_width, screen_height)
+            l, r, t, b = -self.cart1_size[0]*PPM / 2, self.cart1_size[0] *PPM/ 2, self.cart1_size[1] *PPM/ 2, -self.cart1_size[1]*PPM / 2
+            axleoffset = self.cart1_size[1] / 4.0
+            cart1 = rendering.FilledPolygon([(l, b), (l, t), (r, t), (r, b)])
+            self.carttrans1 = rendering.Transform()
+            cart1.add_attr(self.carttrans1)
+            self.viewer.add_geom(cart1)
+            l, r, t, b = -self.cart2_size[0]*PPM / 2, self.cart2_size[0] *PPM/ 2, self.cart2_size[1] *PPM/ 2, -self.cart2_size[1]*PPM / 2
+            axleoffset = self.cart2_size[1] / 4.0
+            cart2 = rendering.FilledPolygon([(l, b), (l, t), (r, t), (r, b)])
+            self.carttrans2 = rendering.Transform()
+            cart2.add_attr(self.carttrans2)
+            self.viewer.add_geom(cart2)
+            l, r, t, b = -self.pend1_size[0]*PPM / 2, self.pend1_size[0] *PPM / 2, self.pend1_size[1] *PPM/ 2, -self.pend1_size[1]*PPM / 2
+            pend1 = rendering.FilledPolygon([(l, b), (l, t), (r, t), (r, b)])
+            self.pendtrans1 = rendering.Transform()
+            pend1.add_attr(self.pendtrans1)
+            self.viewer.add_geom(pend1)
+            l, r, t, b = -self.pend2_size[0]*PPM / 2, self.pend2_size[0] *PPM / 2, self.pend2_size[1] *PPM/ 2, -self.pend2_size[1]*PPM / 2
+            pend2 = rendering.FilledPolygon([(l, b), (l, t), (r, t), (r, b)])
+            self.pendtrans2 = rendering.Transform()
+            pend2.add_attr(self.pendtrans2)
+            self.viewer.add_geom(pend2)
+            l, r, t, b = -self.pend3_size[0]*PPM / 2, self.pend3_size[0] *PPM / 2, self.pend3_size[1] *PPM/ 2, -self.pend3_size[1]*PPM / 2
+            pend3 = rendering.FilledPolygon([(l, b), (l, t), (r, t), (r, b)])
+            self.pendtrans3 = rendering.Transform()
+            pend3.add_attr(self.pendtrans3)
+            self.viewer.add_geom(pend3)
 
-        t2 = self.pend2_body.angle
-        w2 = self.pend2_body.angular_velocity
+        if self.state is None:
+            return None
 
-        xp, yp = self.pend3_body.position[0], self.pend3_body.position[1]
+        cur_state= self.state
+        cart1x = cur_state[0]* scale + screen_width / 2.0  # MIDDLE OF CART
+        self.carttrans1.set_translation(cart1x, cart1y)
+        cart2x = cur_state[3]* scale + screen_width / 2.0  # MIDDLE OF CART
+        self.carttrans2.set_translation(cart2x, cart2y)
 
-        self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
+        pend1_angle=cur_state[4]
+        self.pendtrans1.set_rotation(pend1_angle)
+        pend1x=(self.pend1_body.position[0])*scale + screen_width / 2.0
+        pend1y=(self.pend1_body.position[1])*scale + screen_height / 2.0
+        self.pendtrans1.set_translation(pend1x, pend1y)
+        
+        pend2_angle=cur_state[6]
+        self.pendtrans2.set_rotation(pend2_angle)
+        pend2x=(self.pend2_body.position[0])*scale + screen_width / 2.0
+        pend2y=(self.pend2_body.position[1])*scale + screen_height / 2.0
+        self.pendtrans2.set_translation(pend2x, pend1y)
 
-        return np.array(self.state)
+        pend3_angle=cur_state[8]
+        self.pendtrans3.set_rotation(pend3_angle)
+        pend3x=(cur_state[10])*scale + screen_width / 2.0
+        pend3y=(cur_state[11])*scale + screen_height / 2.0
+        self.pendtrans3.set_translation(pend3x, pend3y)
+        return self.viewer.render(return_rgb_array=mode == 'rgb_array')
 
     def close(self):
         if self.viewer is not None:
