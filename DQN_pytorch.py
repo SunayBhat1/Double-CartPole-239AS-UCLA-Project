@@ -12,6 +12,7 @@ from collections import namedtuple
 from collections import deque
 from typing import List, Tuple
 import matplotlib.pyplot as plt
+import time
 
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -238,7 +239,8 @@ def play_episode(env: gym.Env,
                  agent: Agent,
                  replay_memory: ReplayMemory,
                  eps: float,
-                 batch_size: int) -> int:
+                 batch_size: int,
+                 render = False) -> int:
     """Play an epsiode and train
     Args:
         env (gym.Env): gym environment (CartPole-v0)
@@ -257,6 +259,9 @@ def play_episode(env: gym.Env,
 
         a = agent.get_action(s, eps)
         s2, r, done, info = env.step(a)
+
+        if render == True:
+            env.render()
 
         total_reward += r
 
@@ -320,8 +325,12 @@ def main():
     replay_memory = ReplayMemory(FLAGS.capacity)
 
     for i in range(FLAGS.n_episode):
+        render = False
         eps = epsilon_annealing(i, FLAGS.max_episode, FLAGS.min_eps)
-        r = play_episode(env, agent, replay_memory, eps, FLAGS.batch_size)
+
+        if (i % 50 == 0): render = True
+
+        r = play_episode(env, agent, replay_memory, eps, FLAGS.batch_size,render)
         print("[Episode: {:5}] Reward: {:5} 𝜺-greedy: {:5.2f}".format(i + 1, r, eps))
 
         rewards[i] = r

@@ -176,9 +176,7 @@ class CartsPolesEnv(gym.Env):
         
         # Stopping condition (angle of pole 3 is in 30:330, ie. over 60 degrees from upright)
         done = bool(
-                tp > math.pi/8
-                and tp < 11*math.pi / 8
-
+                abs(tp) > math.pi/8
                 or yp < self.pend3_length/2
                 or x1>=4 or x1<=-4 or x2>=4 or x2<=-4
         )
@@ -196,6 +194,30 @@ class CartsPolesEnv(gym.Env):
             reward = 0
 
         return np.array(self.state), reward, done, {}
+
+    def reset(self):
+         if self.space:
+             del self.space
+         self._init_objects()
+
+         x1 = self.cart1_body.position[0]
+         x1_dot = self.cart1_body.velocity[0]
+         x2 = self.cart2_body.position[0]
+         x2_dot = self.cart2_body.position[0]
+         tp = self.pend3_body.angle
+         wp = self.pend3_body.angular_velocity
+
+         t1 = self.pend1_body.angle
+         w1 = self.pend1_body.angular_velocity
+
+         t2 = self.pend2_body.angle
+         w2 = self.pend2_body.angular_velocity
+
+         xp, yp = self.pend3_body.position[0], self.pend3_body.position[1]
+
+         self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
+
+         return np.array(self.state)
 
     def render(self, mode="human"):
         PPM = 200.0
