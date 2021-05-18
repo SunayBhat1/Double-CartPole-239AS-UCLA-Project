@@ -58,7 +58,7 @@ class CartsPolesEnv(gym.Env):
         self.space.add(self.ground)
 
         #create cart1
-        self.cart1_mass = 0.5
+        self.cart1_mass = 0.5*2
         self.cart1_size = 0.3, 0.2
         self.cart1_moment = pymunk.moment_for_box(self.cart1_mass, self.cart1_size)
         self.cart1_body = pymunk.Body(mass=self.cart1_mass, moment=self.cart1_moment)
@@ -68,7 +68,7 @@ class CartsPolesEnv(gym.Env):
         self.space.add(self.cart1_body, self.cart1_shape)
 
         # create cart2
-        self.cart2_mass = 0.5
+        self.cart2_mass = 0.5*2
         self.cart2_size = 0.3, 0.2
         self.cart2_moment = pymunk.moment_for_box(self.cart2_mass, self.cart2_size)
         self.cart2_body = pymunk.Body(mass=self.cart1_mass, moment=self.cart2_moment)
@@ -84,7 +84,7 @@ class CartsPolesEnv(gym.Env):
         self.pend1_mass = 0.2
         self.pend1_moment = pymunk.moment_for_box(self.pend1_mass, self.pend1_size)
         self.pend1_body = pymunk.Body(mass=self.pend1_mass, moment=self.pend1_moment)
-        self.pend1_body.angle = -math.pi / 4
+        self.pend1_body.angle = -math.pi/4
         self.pend1_body.position = self.cart1_body.position[0] + self.pend1_length * math.cos(self.pend1_body.angle), \
                                     self.cart1_body.position[1] + self.cart1_size[1] / 2 - self.pend1_length * math.sin(self.pend1_body.angle)
         self.pend1_shape = pymunk.Poly.create_box(self.pend1_body, self.pend1_size)
@@ -97,7 +97,7 @@ class CartsPolesEnv(gym.Env):
         self.pend2_mass = .2
         self.pend2_moment = pymunk.moment_for_box(self.pend2_mass, self.pend2_size)
         self.pend2_body = pymunk.Body(mass = self.pend2_mass, moment = self.pend2_moment)
-        self.pend2_body.angle = -3 * math.pi / 4
+        self.pend2_body.angle = -1*self.pend1_body.angle-math.pi
         self.pend2_body.position = self.cart2_body.position[0] + self.pend2_length * math.cos(self.pend2_body.angle), \
                                     self.cart2_body.position[1] + self.cart2_size[1] / 2 - self.pend2_length * math.sin(self.pend2_body.angle)
         self.pend2_shape = pymunk.Poly.create_box(self.pend2_body, self.pend2_size)
@@ -123,7 +123,7 @@ class CartsPolesEnv(gym.Env):
         
         
         # create joint 2
-        self.joint2 = pymunk.constraints.PivotJoint(self.cart2_body, self.pend2_body, self.cart2_body.position + (0, self.cart1_size[1] / 2))
+        self.joint2 = pymunk.constraints.PivotJoint(self.cart2_body, self.pend2_body, self.cart2_body.position + (0, self.cart2_size[1] / 2))
         self.joint2.collide_bodies = False
         self.space.add(self.joint2)
         
@@ -220,18 +220,22 @@ class CartsPolesEnv(gym.Env):
          return np.array(self.state)
 
     def render(self, mode="human"):
-        PPM = 200.0
+        
         screen_width = 1000
         screen_height = 700
 
         world_width = self.x_threshold * 2
         scale = screen_width/world_width
-        cart1y=self.cart1_body.position[1]*scale + screen_height / 2.0
-        cart2y=self.cart2_body.position[1]*scale + screen_height / 2.0
+        PPM = scale
 
         if self.viewer is None:
             from gym.envs.classic_control import rendering
             self.viewer = rendering.Viewer(screen_width, screen_height)
+            l, r, t, b = -self.ground.a.x*PPM, self.ground.a.x *PPM, self.ground.a.y *PPM/ 2, -self.ground.a.y*PPM / 2
+            ground= rendering.FilledPolygon([(l, b), (l, t), (r, t), (r, b)])
+            self.groundtrans = rendering.Transform()
+            ground.add_attr(self.groundtrans)
+            self.viewer.add_geom(ground)
             l, r, t, b = -self.cart1_size[0]*PPM / 2, self.cart1_size[0] *PPM/ 2, self.cart1_size[1] *PPM/ 2, -self.cart1_size[1]*PPM / 2
             axleoffset = self.cart1_size[1] / 4.0
             cart1 = rendering.FilledPolygon([(l, b), (l, t), (r, t), (r, b)])
@@ -262,11 +266,14 @@ class CartsPolesEnv(gym.Env):
 
         if self.state is None:
             return None
-
+        
+        self.groundtrans.set_translation(screen_width / 2.0,screen_height / 2.0)
         cur_state= self.state
-        cart1x = cur_state[0]* scale + screen_width / 2.0  # MIDDLE OF CART
+        cart1y=self.cart1_body.position[1]*scale + screen_height / 2.0
+        cart2y=self.cart2_body.position[1]*scale + screen_height / 2.0
+        cart1x = self.cart1_body.position[0]* scale + screen_width / 2.0  # MIDDLE OF CART
         self.carttrans1.set_translation(cart1x, cart1y)
-        cart2x = cur_state[3]* scale + screen_width / 2.0  # MIDDLE OF CART
+        cart2x = self.cart2_body.position[0]* scale + screen_width / 2.0  # MIDDLE OF CART
         self.carttrans2.set_translation(cart2x, cart2y)
 
         pend1_angle=cur_state[4]
@@ -279,7 +286,7 @@ class CartsPolesEnv(gym.Env):
         self.pendtrans2.set_rotation(pend2_angle)
         pend2x=(self.pend2_body.position[0])*scale + screen_width / 2.0
         pend2y=(self.pend2_body.position[1])*scale + screen_height / 2.0
-        self.pendtrans2.set_translation(pend2x, pend1y)
+        self.pendtrans2.set_translation(pend2x, pend2y)
 
         pend3_angle=cur_state[8]
         self.pendtrans3.set_rotation(pend3_angle)
