@@ -1,7 +1,7 @@
 """
 DQN in PyTorch
 """
-import argparse
+
 from carts_poles import CartsPolesEnv
 import torch
 import torch.nn
@@ -13,42 +13,31 @@ from collections import deque
 from typing import List, Tuple
 import matplotlib.pyplot as plt
 import time
+from datetime import datetime
+import pickle
 
+# Hyper parms!!
+global FLAGS
 
-parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument("--gamma",
-                    type=float,
-                    default=0.99,
-                    help="Discount rate for Q_target")
-parser.add_argument("--env",
-                    type=str,
-                    default="CartPole-v0",
-                    help="Gym environment name")
-parser.add_argument("--n-episode",
-                    type=int,
-                    default=1000,
-                    help="Number of epsidoes to run")
-parser.add_argument("--batch-size",
-                    type=int,
-                    default=64,
-                    help="Mini-batch size")
-parser.add_argument("--hidden-dim",
-                    type=int,
-                    default=12,
-                    help="Hidden dimension")
-parser.add_argument("--capacity",
-                    type=int,
-                    default=50000,
-                    help="Replay memory capacity")
-parser.add_argument("--max-episode",
-                    type=int,
-                    default=50,
-                    help="e-Greedy target episode (eps will be the lowest at this episode)")
-parser.add_argument("--min-eps",
-                    type=float,
-                    default=0.01,
-                    help="Min epsilon")
-FLAGS = parser.parse_args()
+FLAGS = {
+    "gamma" : 0.99,
+    
+    "n_episode" : 100,
+
+    "batch_size" : 64,
+
+    "hidden_dim" : 12,
+
+    "capacity" : 50000,
+
+    "max_episode" : 50,
+
+    "min_eps" : 0.01,
+
+    "num_saved_episode" : 3,
+
+    "Load_DQN" : True
+}
 
 
 class DQN(torch.nn.Module):
@@ -251,6 +240,8 @@ def play_episode(env: gym.Env,
     Returns:
         int: reward earned in this episode
     """
+
+    history = list()
     s = env.reset()
     done = False
     total_reward = 0
@@ -259,6 +250,8 @@ def play_episode(env: gym.Env,
 
         a = agent.get_action(s, eps)
         s2, r, done, info = env.step(a)
+
+        history.append((s,a,r))
 
         if render == True:
             env.render()
@@ -272,11 +265,11 @@ def play_episode(env: gym.Env,
         if len(replay_memory) > batch_size:
 
             minibatch = replay_memory.pop(batch_size)
-            train_helper(agent, minibatch, FLAGS.gamma)
+            train_helper(agent, minibatch, FLAGS['gamma'])
 
         s = s2
 
-    return total_reward
+    return total_reward, history
 
 
 def get_env_dim(env: gym.Env) -> Tuple[int, int]:
@@ -314,44 +307,46 @@ def epsilon_annealing(epsiode: int, max_episode: int, min_eps: float) -> float:
 
 
 def main():
-    """Main
-    """
-    # try:
+
     env = CartsPolesEnv()
-    # env = gym.wrappers.Monitor(env, directory="monitors", force=True)
-    rewards = np.zeros(FLAGS.n_episode)
+    rewards = np.zeros(FLAGS['n_episode'])
     input_dim, output_dim = get_env_dim(env)
-    agent = Agent(input_dim, output_dim, FLAGS.hidden_dim)
-    replay_memory = ReplayMemory(FLAGS.capacity)
+    agent = Agent(input_dim, output_dim, FLAGS['hidden_dim'])
 
-    for i in range(FLAGS.n_episode):
+    if FLAGS['Load_DQN']: 
+        agent.dqn.load_state_dict(torch.load('DQN.pt'))
+        print('DQN Loaded!!')
+
+    replay_memory = ReplayMemory(FLAGS['capacity'])
+
+    biggest_rs = 0
+    for i in range(FLAGS['n_episode']):
         render = False
-        eps = epsilon_annealing(i, FLAGS.max_episode, FLAGS.min_eps)
+        eps = epsilon_annealing(i, FLAGS['max_episode'], FLAGS['min_eps'])
 
-        if (i % 50 == 0): render = True
+        if (i % 50 == 0): render = False
 
-        r = play_episode(env, agent, replay_memory, eps, FLAGS.batch_size,render)
-        print("[Episode: {:5}] Reward: {:5} 𝜺-greedy: {:5.2f}".format(i + 1, r, eps))
+        r, history = play_episode(env, agent, replay_memory, eps,FLAGS['batch_size'],render)
+        if (i % 10 == 0): print("[Episode: {:5}] Reward: {:5} 𝜺-greedy: {:5.2f}".format(i + 1, r, eps))
 
         rewards[i] = r
 
-        # if len(rewards) == rewards.maxlen:
-        #     if np.mean(rewards) >= 200:
-        #         print("Game cleared in {} games with {}".format(i + 1, np.mean(rewards)))
-        #         break
+        if r > biggest_rs:
+            biggest_rs = r
+            episode_save = history
+            
+    
+    torch.save(agent.dqn.state_dict(), 'DQN.pt')
+    now = datetime.now()
+    d1 = now.strftime('%d_%m_%Y_%H_%M_%S')
+    torch.save(agent.dqn.state_dict(), 'DQN_archive/DQN_' + d1 + '.pt')
+    pickle.dump([biggest_rs,episode_save], open( 'Episodes/BestEpisode_' + d1 + '.p', "wb" ) )
+    print('DQN and top episode Saved (with backup)')
 
-    # fig, (ax1, ax2) = plt.subplots(1, 2,figsize=(12,4), dpi= 100, facecolor='w', edgecolor='k')
-    plt.plot(range(0,FLAGS.n_episode),rewards)
-    # ax2.plot(range(0,n_episode),td_error,c='g')
+    plt.plot(range(0,FLAGS['n_episode']),rewards)
     plt.title("DQN Episode Length vs Episode")
-    # ax2.title.set_text("TD Error Convergence")
-    # fig.suptitle('DQN Control')
-    # ax1.set_xscale('log')
-    # ax2.set_xscale('log')
     plt.grid()
-    # ax2.grid()
     plt.show()
-# 
 
 if __name__ == '__main__':
     main()
