@@ -15,6 +15,8 @@ import matplotlib.pyplot as plt
 import time
 from datetime import datetime
 import pickle
+import os.path
+from os import path
 
 # Hyper parms!!
 global FLAGS
@@ -313,7 +315,7 @@ def main():
     input_dim, output_dim = get_env_dim(env)
     agent = Agent(input_dim, output_dim, FLAGS['hidden_dim'])
 
-    if FLAGS['Load_DQN']: 
+    if (FLAGS['Load_DQN'] and path.exists("DQN.pt")): 
         agent.dqn.load_state_dict(torch.load('DQN.pt'))
         print('DQN Loaded!!')
 
