@@ -336,6 +336,7 @@ def main():
         if r > biggest_rs:
             biggest_rs = r
             episode_save = history
+            torch.save(agent.dqn.state_dict(), 'DQN_best.pt')
             
     
     torch.save(agent.dqn.state_dict(), 'DQN.pt')
