@@ -24,21 +24,21 @@ global FLAGS
 FLAGS = {
     "gamma" : 0.99,
     
-    "n_episode" : 100,
+    "n_episode" : 15000,
 
-    "batch_size" : 64,
+    "batch_size" : 256,
 
-    "hidden_dim" : 12,
+    "hidden_dim" : 144,
 
     "capacity" : 50000,
 
     "max_episode" : 50,
 
-    "min_eps" : 0.01,
+    "min_eps" : 0.1,
 
     "num_saved_episode" : 3,
 
-    "Load_DQN" : True
+    "Load_DQN" : False
 }
 
 
@@ -320,7 +320,7 @@ def main():
         print('DQN Loaded!!')
 
     replay_memory = ReplayMemory(FLAGS['capacity'])
-
+    avg = 0
     biggest_rs = 0
     for i in range(FLAGS['n_episode']):
         render = False
@@ -332,13 +332,16 @@ def main():
         if (i % 10 == 0): print("[Episode: {:5}] Reward: {:5} 𝜺-greedy: {:5.2f}".format(i + 1, r, eps))
 
         rewards[i] = r
-
+        if(i>50):
+            avg = np.mean(rewards[i-50:i])
         if r > biggest_rs:
             biggest_rs = r
             episode_save = history
             torch.save(agent.dqn.state_dict(), 'DQN_best.pt')
             
-    
+        if(avg>60):
+            torch.save(agent.dqn.state_dict(), 'DQN_avg.pt')
+            break
     torch.save(agent.dqn.state_dict(), 'DQN.pt')
     now = datetime.now()
     d1 = now.strftime('%d_%m_%Y_%H_%M_%S')

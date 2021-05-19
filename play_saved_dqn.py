@@ -6,11 +6,14 @@ import numpy as np
 
 
 env = CartsPolesEnv()
-model=torch.load('DQN.pt')
+model=torch.load('DQN_19_05_2021_12_17_33.pt')
 layer_one=model['layer1.0.weight'].shape
 layer_two=model['layer2.0.weight'].shape
 final_layer=model['final.weight'].shape
-agent = Agent(layer_one[0], final_layer[0], layer_two[0])
+print(layer_two)
+print(layer_one)
+print(final_layer)
+agent = Agent(layer_one[1], final_layer[0], layer_two[0])
 agent.dqn.load_state_dict(model)
 
 history = list()
@@ -27,3 +30,4 @@ while not done:
     if done:
         r = -1
     s = s2
+env.close()
