@@ -1,4 +1,5 @@
 import math
+from numpy.lib import angle
 import pymunk
 import pymunk.constraints
 import gym
@@ -7,12 +8,12 @@ import numpy as np
 
 class CartsPolesEnv(gym.Env):
 
-    def __init__(self, dt=1/100, force_mag=5):
+    def __init__(self, angle=0, dt=1/100, force_mag=5):
         # dt is the simulation step
 
         #gym.Env.__init__(self)
         super(CartsPolesEnv, self).__init__()
-        self._init_objects()
+        self._init_objects(angle)
         self.dt = dt
         self.force_mag = force_mag
 
@@ -46,7 +47,7 @@ class CartsPolesEnv(gym.Env):
         self.steps_beyond_done = None
 
 
-    def _init_objects(self):
+    def _init_objects(self,angle):
         self.space = pymunk.Space()
         self.space.gravity = 0, -9.8 #set the gravity of the system
         fil = pymunk.ShapeFilter(group=1) #used to make sure the ground does not collide with others
@@ -110,8 +111,8 @@ class CartsPolesEnv(gym.Env):
         self.pend3_mass = .4
         self.pend3_moment = pymunk.moment_for_box(self.pend3_mass, self.pend3_size)
         self.pend3_body = pymunk.Body(mass = self.pend3_mass, moment = self.pend3_moment)
-        self.pend3_body.angle = 0
-        self.pend3_body.position = 0, -2 * self.pend1_length * math.sin(self.pend1_body.angle) + self.cart1_size[1] / 2 + self.pend3_length - 0.05
+        self.pend3_body.angle = angle
+        self.pend3_body.position = 0-(self.pend3_length-.05) * math.sin(self.pend3_body.angle), -2 * self.pend1_length * math.sin(self.pend1_body.angle) + self.cart1_size[1] / 2 + (self.pend3_length -.05)* math.cos(self.pend3_body.angle)
         self.pend3_shape = pymunk.Poly.create_box(self.pend3_body, self.pend3_size)
         self.pend3_shape.filter = fil
         self.space.add(self.pend3_body, self.pend3_shape)
@@ -195,10 +196,10 @@ class CartsPolesEnv(gym.Env):
 
         return np.array(self.state), reward, done, {}
 
-    def reset(self):
+    def reset(self,angle=0):
          if self.space:
              del self.space
-         self._init_objects()
+         self._init_objects(angle)
 
          x1 = self.cart1_body.position[0]
          x1_dot = self.cart1_body.velocity[0]
