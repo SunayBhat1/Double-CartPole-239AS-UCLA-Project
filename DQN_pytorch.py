@@ -271,7 +271,7 @@ def play_episode(env: gym.Env,
 
         s = s2
 
-    return total_reward, history
+    return total_reward, history, info
 
 
 def get_env_dim(env: gym.Env) -> Tuple[int, int]:
@@ -328,8 +328,8 @@ def main():
 
         if (i % 50 == 0): render = False
 
-        r, history = play_episode(env, agent, replay_memory, eps,FLAGS['batch_size'],render)
-        if (i % 10 == 0): print("[Episode: {:5}] Reward: {:5} 𝜺-greedy: {:5.2f}".format(i + 1, r, eps))
+        r, history, info = play_episode(env, agent, replay_memory, eps,FLAGS['batch_size'],render)
+        if (i % 10 == 0): print("[Episode: {:5}] Reward: {:5}  Time: {:5} 𝜺-greedy: {:5.2f}".format(i + 1, r,info['time'], eps))
 
         rewards[i] = r
         if(i>50):

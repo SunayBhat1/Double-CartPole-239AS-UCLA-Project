@@ -48,6 +48,7 @@ class CartsPolesEnv(gym.Env):
 
 
     def _init_objects(self,angle):
+        self.time=0
         self.space = pymunk.Space()
         self.space.gravity = 0, -9.8 #set the gravity of the system
         fil = pymunk.ShapeFilter(group=1) #used to make sure the ground does not collide with others
@@ -190,17 +191,24 @@ class CartsPolesEnv(gym.Env):
 
         # abs(np.cos(tp))
         if not done:
-            reward = self.dt #abs(np.cos(tp))*self.dt
+            reward = self.dt
+            if self.time>10:
+                reward=reward*2
+            elif self.time>100:
+                reward=reward*10
+             #abs(np.cos(tp))*self.dt
+            self.time=self.time+self.dt
         else:
             reward = 0
 
-        return np.array(self.state), reward, done, {}
+        return np.array(self.state), reward, done, {'time':self.time}
 
     def reset(self,angle=0):
          if self.space:
              del self.space
+         self.time=0
          self._init_objects(angle)
-
+        
          x1 = self.cart1_body.position[0]
          x1_dot = self.cart1_body.velocity[0]
          x2 = self.cart2_body.position[0]
