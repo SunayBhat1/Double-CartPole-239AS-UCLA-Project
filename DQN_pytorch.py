@@ -244,7 +244,8 @@ def play_episode(env: gym.Env,
     """
 
     history = list()
-    s = env.reset()
+    randAngle =  (np.random.rand()*2*np.pi/8)-np.pi/8
+    s = env.reset(randAngle)
     done = False
     total_reward = 0
 
@@ -312,6 +313,7 @@ def main():
 
     env = CartsPolesEnv()
     rewards = np.zeros(FLAGS['n_episode'])
+    times = np.zeros(FLAGS['n_episode'])
     input_dim, output_dim = get_env_dim(env)
     agent = Agent(input_dim, output_dim, FLAGS['hidden_dim'])
 
@@ -332,14 +334,15 @@ def main():
         if (i % 10 == 0): print("[Episode: {:5}] Reward: {:5}  Time: {:5} 𝜺-greedy: {:5.2f}".format(i + 1, r,info['time'], eps))
 
         rewards[i] = r
+        times[i] = info['time']
         if(i>50):
-            avg = np.mean(rewards[i-50:i])
+            avg = np.mean(times[i-50:i])
         if r > biggest_rs:
             biggest_rs = r
             episode_save = history
             torch.save(agent.dqn.state_dict(), 'DQN_best.pt')
             
-        if(avg>60):
+        if(avg>5):
             torch.save(agent.dqn.state_dict(), 'DQN_avg.pt')
             break
     torch.save(agent.dqn.state_dict(), 'DQN.pt')

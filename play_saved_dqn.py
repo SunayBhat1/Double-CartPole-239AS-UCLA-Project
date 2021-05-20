@@ -6,7 +6,7 @@ import numpy as np
 
 
 env = CartsPolesEnv()
-model=torch.load('DQN_19_05_2021_12_17_33.pt')
+model=torch.load('DQN_avg.pt')
 layer_one=model['layer1.0.weight'].shape
 layer_two=model['layer2.0.weight'].shape
 final_layer=model['final.weight'].shape
@@ -20,13 +20,16 @@ history = list()
 s = env.reset()
 done = False
 total_reward = 0
-
+prev = 0
 while not done:
     a = agent.get_action(s, 0)
     s2, r, done, info = env.step(a)
     # history.append((s,a,r))
     env.render()
     total_reward += r
+    if(info['time']-prev>1):
+        print(info['time'])
+        prev = info['time']
     if done:
         r = -1
     s = s2
