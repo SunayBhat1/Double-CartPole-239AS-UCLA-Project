@@ -24,7 +24,7 @@ global FLAGS
 FLAGS = {
     "gamma" : 0.99,
     
-    "n_episode" : 15000,
+    "n_episode" : 5000,
 
     "batch_size" : 256,
 
@@ -342,9 +342,8 @@ def main():
             episode_save = history
             torch.save(agent.dqn.state_dict(), 'DQN_best.pt')
             
-        if(avg>5):
-            torch.save(agent.dqn.state_dict(), 'DQN_avg.pt')
-            break
+        if(avg>60):
+            torch.save(agent.dqn.state_dict(), 'DQN_avg_'+i+'.pt')
     torch.save(agent.dqn.state_dict(), 'DQN.pt')
     now = datetime.now()
     d1 = now.strftime('%d_%m_%Y_%H_%M_%S')
