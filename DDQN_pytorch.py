@@ -150,7 +150,7 @@ def evaluate(Qmodel, env, repeats,horizon):
             state, reward, done, _ = env.step(action)
             perform += reward
             tot_reward+=reward
-            if tot_reward<horizon:
+            if tot_reward>horizon:
                 done=True
             
     Qmodel.train()
