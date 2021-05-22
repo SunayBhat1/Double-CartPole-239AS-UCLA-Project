@@ -131,7 +131,7 @@ def train(batch_size, current, target, optim, memory, gamma):
     optim.step()
 
 
-def evaluate(Qmodel, env, repeats):
+def evaluate(Qmodel, env, repeats,horizon):
     """
     Runs a greedy policy with respect to the current Q-Network for "repeats" many episodes. Returns the average
     episode reward.
@@ -139,6 +139,7 @@ def evaluate(Qmodel, env, repeats):
     Qmodel.eval()
     perform = 0
     for _ in range(repeats):
+        tot_reward=0
         state = env.reset()
         done = False
         while not done:
@@ -148,6 +149,10 @@ def evaluate(Qmodel, env, repeats):
             action = np.argmax(values.cpu().numpy())
             state, reward, done, _ = env.step(action)
             perform += reward
+            tot_reward+=reward
+            if tot_reward<horizon:
+                done=True
+            
     Qmodel.train()
     return perform/repeats
 
@@ -158,7 +163,7 @@ def update_parameters(current_model, target_model):
 
 def main(gamma=0.99, lr=1e-3, min_episodes=20, eps=1, eps_decay=0.995, eps_min=0.01, update_step=10, batch_size=64, update_repeats=50,
          num_episodes=3000, seed=42, max_memory_size=50000, lr_gamma=0.9, lr_step=1000, measure_step=100,
-         measure_repeats=100, hidden_dim=64, env_name='CartPole-v1', cnn=False, horizon=24000, render=False, render_step=50):
+         measure_repeats=100, hidden_dim=64, env_name='CartPole-v1', cnn=False, horizon=200, render=False, render_step=50):
     """
     :param gamma: reward discount factor
     :param lr: learning rate for the Q-Network
@@ -215,11 +220,15 @@ def main(gamma=0.99, lr=1e-3, min_episodes=20, eps=1, eps_decay=0.995, eps_min=0
         # display the performance
         stop+=1
         if episode % measure_step == 0:
-            performance.append([episode, evaluate(Q_1, env, measure_repeats)])
+            performance.append([episode, evaluate(Q_1, env, measure_repeats,horizon)])
+
             print("Episode: ", episode)
             print("rewards: ", performance[-1][1])
             print("lr: ", scheduler.get_lr()[0])
             print("eps: ", eps)
+            if performance[-1][1]>=horizon-50:
+                print("Ended early!!!!")
+                break
 
         state = env.reset()
         memory.state.append(state)
@@ -227,10 +236,10 @@ def main(gamma=0.99, lr=1e-3, min_episodes=20, eps=1, eps_decay=0.995, eps_min=0
         done = False
         i = 0
         while not done:
-            i += 1
+            
             action = select_action(Q_2, env, state, eps)
             state, reward, done, _ = env.step(action)
-
+            i += reward
             if i > horizon:
                 done = True
             # render the environment if render == True
@@ -251,14 +260,10 @@ def main(gamma=0.99, lr=1e-3, min_episodes=20, eps=1, eps_decay=0.995, eps_min=0
         scheduler.step()
         eps = max(eps*eps_decay, eps_min)
 
-        if(i>horizon):
-            if episode % measure_step != 0:
-                performance.append([episode, evaluate(Q_1, env, measure_repeats)])
-            break
 
     # print(testing)
     # print(range(0,stop,measure_step))
-    plt.plot(performance[0],performance[1])
+    plt.plot(performance[0][:],performance[1][:])
     plt.title("DQN Episode Length vs Episode")
     plt.grid()
     plt.show()
