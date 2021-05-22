@@ -13,7 +13,7 @@ Qmodel=QNetwork(layer_three[0],layer_one[1],layer_one[0])
 Qmodel.load_state_dict(model)
 
 history = list()
-state = env.reset()
+state = env.reset(-.12)
 done = False
 total_reward = 0
 prev = 0
@@ -24,7 +24,7 @@ while not done:
     action = np.argmax(values.cpu().numpy())
     state, reward, done, info= env.step(action)
     # history.append((s,a,r))
-    env.render()
+    #env.render()
     total_reward += reward
     if(info['time']-prev>1):
         print(info['time'])
@@ -32,4 +32,4 @@ while not done:
     if info['time']>200:
         done=True
     
-env.close()
+#env.close()
