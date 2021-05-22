@@ -24,7 +24,7 @@ global FLAGS
 FLAGS = {
     "gamma" : 0.99,
     
-    "n_episode" : 5000,
+    "n_episode" : 15000,
 
     "batch_size" : 256,
 
@@ -244,7 +244,7 @@ def play_episode(env: gym.Env,
     """
 
     history = list()
-    randAngle =  (np.random.rand()*2*np.pi/8)-np.pi/8
+    randAngle =  (np.random.rand()*2*np.pi/10)-np.pi/10
     s = env.reset(randAngle)
     done = False
     total_reward = 0
@@ -310,7 +310,6 @@ def epsilon_annealing(epsiode: int, max_episode: int, min_eps: float) -> float:
 
 
 def main():
-
     env = CartsPolesEnv()
     rewards = np.zeros(FLAGS['n_episode'])
     times = np.zeros(FLAGS['n_episode'])
@@ -324,6 +323,7 @@ def main():
     replay_memory = ReplayMemory(FLAGS['capacity'])
     avg = 0
     biggest_rs = 0
+    #saveI = 0
     for i in range(FLAGS['n_episode']):
         render = False
         eps = epsilon_annealing(i, FLAGS['max_episode'], FLAGS['min_eps'])
@@ -335,15 +335,17 @@ def main():
 
         rewards[i] = r
         times[i] = info['time']
-        if(i>50):
+        if(i>5):
             avg = np.mean(times[i-50:i])
         if r > biggest_rs:
             biggest_rs = r
             episode_save = history
             torch.save(agent.dqn.state_dict(), 'DQN_best.pt')
             
-        if(avg>60):
-            torch.save(agent.dqn.state_dict(), 'DQN_avg_'+i+'.pt')
+        if(avg>50):
+            torch.save(agent.dqn.state_dict(), 'DQN_avg.pt')
+            saveI = i
+            break
     torch.save(agent.dqn.state_dict(), 'DQN.pt')
     now = datetime.now()
     d1 = now.strftime('%d_%m_%Y_%H_%M_%S')
@@ -351,7 +353,8 @@ def main():
     pickle.dump([biggest_rs,episode_save], open( 'Episodes/BestEpisode_' + d1 + '.p', "wb" ) )
     print('DQN and top episode Saved (with backup)')
 
-    plt.plot(range(0,FLAGS['n_episode']),rewards)
+    plt.plot(range(0,saveI),rewards[0:saveI])
+    #plt.plot(range(0,FLAGS['n_episode']),rewards)
     plt.title("DQN Episode Length vs Episode")
     plt.grid()
     plt.show()
