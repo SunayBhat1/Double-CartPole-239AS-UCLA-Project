@@ -263,7 +263,7 @@ def main(gamma=0.99, lr=1e-3, min_episodes=20, eps=1, eps_decay=0.995, eps_min=0
 
     # print(testing)
     # print(range(0,stop,measure_step))
-    plt.plot(performance[0][:],performance[1][:])
+    plt.plot([x[0] for x in performance],[x[1] for x in performance])
     plt.title("DQN Episode Length vs Episode")
     plt.grid()
     plt.show()
