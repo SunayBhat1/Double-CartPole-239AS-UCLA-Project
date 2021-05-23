@@ -4,7 +4,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
-model=torch.load('DDQN_5_22_1216.pt')
+model=torch.load('DQN_max.pt')
 
 env = CartsPolesEnv()
 layer_one=model['fc_1.weight'].shape
