@@ -1,6 +1,7 @@
 from agent import Agent
 import numpy as np
 from carts_poles import CartsPolesEnv
+import matplotlib.pyplot as plt
 import time
 from tqdm import tqdm
 
@@ -33,7 +34,7 @@ class Critic(nn.Module):
         self.output_dim = output_dim
         self.linear1 = nn.Linear(self.input_dim, hidden1_dim)
         self.linear2 = nn.Linear(hidden1_dim, hidden2_dim)
-        self.linear3 = nn.Linear(output_dim, 1)
+        self.linear3 = nn.Linear(hidden2_dim, 1)
 
     def forward(self, state):
         output = F.relu(self.linear1(state))
@@ -42,12 +43,14 @@ class Critic(nn.Module):
         return value
 
 class AC_agent(Agent):
-    method = "AC"
+    # method = "AC"
     # env=CartsPolesEnv()
 
     def __init__(self,args):
+        self.method = "AC"
         self.n = args['n_episode']
         self.alpha = args['alpha']
+        self.gamma = args['gamma']
         self.rand_angle = args['rand_angle']
         self.nn_hidden1_dim = args['ac_hidden1_dim']
         self.nn_hidden2_dim = args['ac_hidden2_dim']
@@ -64,8 +67,8 @@ class AC_agent(Agent):
     def save(self, dirname: str) -> None:
         torch.save(self.actor.state_dict(), dirname + 'actor.pkl')
         torch.save(self.critic.state_dict(), dirname + 'critic.pkl')
-        torch.save(self.actor.state_dict(), dirname + 'Archive/actor' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
-        torch.save(self.critic.state_dict(), dirname + 'Archive/critic' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
+        torch.save(self.actor.state_dict(), dirname + 'Archive/actor_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
+        torch.save(self.critic.state_dict(), dirname + 'Archive/critic_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
     
     def load(self, dirname: str) -> None:
         a_model = torch.load(dirname + 'actor.pkl')
@@ -73,27 +76,27 @@ class AC_agent(Agent):
         self.actor.load_state_dict(a_model)
         self.critic.load_state_dict(c_model)
 
-    def plot_training(self, rewards, times) -> None:
-        return super().plot_training(rewards, times)
+    def plot_training(self, rewards, mean_window,method,dirname) -> None:
+        return super().plot_training(rewards, mean_window,method,dirname)
 
-    def compute_returns(next_value, rewards, masks, gamma=0.99):
+    def compute_returns(self, next_value, rewards, masks):
         R = next_value
         returns = []
         for step in reversed(range(len(rewards))):
-            R = rewards[step] + gamma * R * masks[step]
+            R = rewards[step] + self.gamma * R * masks[step]
             returns.insert(0, R)
         return returns
 
-    def run_training(self, dirname: str) -> None:
+    def run_training(self, dirname: str, print_log: int) -> None:
 
         env = CartsPolesEnv()
 
-        optimizerA = optim.Adam(self.actor.parameters(),lr=learnrate)
-        optimizerC = optim.Adam(self.critic.parameters(),lr=learnrate)
+        optimizerA = optim.Adam(self.actor.parameters(),lr=self.alpha)
+        optimizerC = optim.Adam(self.critic.parameters(),lr=self.alpha)
         rewards = []
         times = []
 
-        for episode in tqdm(range(self.n)):
+        for episode in tqdm(range(self.n),ncols=100):
 
             Angle = (np.random.rand()*2*self.rand_angle)-self.rand_angle
             state = env.reset(Angle)
@@ -104,7 +107,7 @@ class AC_agent(Agent):
             masks = []
             entropy = 0
 
-            ep_reward = []
+            ep_reward = 0
 
             done = False
 
@@ -121,21 +124,21 @@ class AC_agent(Agent):
 
                 log_probs.append(log_prob)
                 values.append(value)
-                reward_train.append(torch.tensor([reward_train], dtype=torch.float, device=device))
-                masks.append(torch.tensor([1-done], dtype=torch.float, device=device))
+                reward_train.append(torch.tensor([reward], dtype=torch.float))
+                masks.append(torch.tensor([1-done], dtype=torch.float))
 
                 state = next_state
 
-                ep_reward.append(reward)
+                ep_reward += reward
 
                 if info['time'] > self.horizon:
-                    print('Episode: {} Maxed out Time!'.format(episode))
+                    tqdm.write('Episode: {} Maxed out Time!'.format(episode))
                     self.save(dirname)
                     break
 
-            next_state = torch.FloatTensor(next_state).to(device)
-            next_value = critic(next_state)
-            returns = compute_returns(next_value, reward_train, masks)
+            next_state = torch.FloatTensor(next_state)
+            next_value = self.critic(next_state)
+            returns = self.compute_returns(next_value, reward_train, masks)
 
             log_probs = torch.cat(log_probs)
             returns = torch.cat(returns).detach()
@@ -155,18 +158,18 @@ class AC_agent(Agent):
 
             rewards.append(ep_reward)
             times.append(info['time'])
-            if (episode % 500 == 0): print('Episode: {}, Seconds: {:.4f}, Start Angle: {:.4f}'.format(episode, info['time'], Angle))
+            if (episode % print_log == 0): tqdm.write('Episode: {}, Seconds: {:.4f}, Start Angle: {:.4f}'.format(episode, info['time'], Angle))
 
 
         self.save(dirname)
+        self.plot_training(rewards,self.mean_window,self.method,dirname)
         env.close()
-
-        self.plot_training(rewards,times)
-        self.evaluate(True)
+        print('Done Training!'.format())
+        # self.evaluate(True)
 
         # end def run_training
 
-    def evaluate(self,plot: bool) -> bool:
+    def evaluate(self, dirname: str, plot: bool) -> None:
 
         env = CartsPolesEnv()
 
@@ -178,15 +181,15 @@ class AC_agent(Agent):
             ep_rewards = 0
             prev = 0
 
-            time = 0
+            duration = 0
 
-            while (time <= self.horizon):
+            while (duration <= self.horizon):
                 state = torch.FloatTensor(s)
                 dist = self.actor(state)
                 a = dist.sample()
                 s2, r, done, info = env.step(a)
 
-                time = info['time']
+                duration = info['time']
 
                 ep_rewards += r
 
@@ -194,15 +197,16 @@ class AC_agent(Agent):
                     break 
                 s = s2
 
-            tot_rewards[i] = time
+            tot_rewards[i] = duration
             env.close()
 
         if plot: 
-            fig1, ax0 = plt.subplots()
-            ax0.plot(test_angles,tot_rewards)
+            fig, ax0 = plt.subplots(figsize=(6,3.5), dpi= 130, facecolor='w', edgecolor='k')
+            ax0.plot(self.test_angles,tot_rewards,c='g')
             ax0.set_title("Start Angle vs Episode Length",fontweight='bold',fontsize = 15)
-            ax0.set_xlabel("Episode Length (Seconds)",fontweight='bold',fontsize = 12)
-            ax0.set_ylabel("Start Angle (Radians)",fontweight='bold',fontsize = 12)
+            ax0.set_ylabel("Episode Length (Seconds)",fontweight='bold',fontsize = 12)
+            ax0.set_xlabel("Start Angle (Radians)",fontweight='bold',fontsize = 12)
             ax0.grid()
-            plt.pause(0.001)
-            fig.savefig('Plots/' +cls.method +'_Results_' + time.strftime("%Y%m%d-%H%M%S") + '.png')
+            fig.savefig(dirname + 'Plots/' + self.method + '_Results_' + time.strftime("%Y%m%d-%H%M%S") + '.png')
+            plt.show()
+            

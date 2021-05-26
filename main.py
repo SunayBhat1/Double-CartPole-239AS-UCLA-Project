@@ -1,42 +1,45 @@
-from DQN_agent import DQN_agent
-#from AC_agent import AC_agent
-
+# from DQN_agent import DQN_agent
+from AC_agent import AC_agent
 import numpy as np
 
 args = {
-        "gamma" : 0.99,
+        "gamma" : 0.99, # All
         
-        "n_episode" : 15000,
+        "n_episode" : 10000, # All
 
-        "batch_size" : 256,
+        "rand_angle" : np.pi/10, # All
 
-        "hidden_dim" : 144,
+        "mean_window" : 100, # All
 
-        "capacity" : 50000,
+        "horizon" : 200, # All
 
-        "max_episode" : 50,
+        "test_angles" : np.linspace(np.pi/8,-np.pi/8,100), #ALL
 
-        "min_eps" : 0.1,
+        "batch_size" : 256, # DQN, DDQN
 
-        "num_saved_episode" : 3,
+        "hidden_dim" : 144, # DQN, DDQN
 
-        "Load_DQN" : False,
+        "capacity" : 50000, # DQN, DDQN
 
-        "horizon" : 200,
+        "max_episode" : 50, # DQN, DDQN
 
-        "rand_angle" : np.pi/8,
+        "min_eps" : 0.1, # DQN, DDQN
 
-        "mean_window" : 100,
-        
-        "test_angles" : np.linspace(np.pi/10,-np.pi/10,100),
+        "num_saved_episode" : 3, # ????
 
-        'ac_hidden1_dim' : 128,
+        "Load_DQN" : False, # DQN, DDQN
 
-        'ac_hidden2_dim': 256
+        'ac_hidden1_dim' : 128, # AC
 
+        'ac_hidden2_dim': 256, # AC
+
+        'alpha': 0.0001 # AC
     }
-Agent=DQN_agent(args)
-Agent.run_training("")
 
+# Agent=DQN_agent(args)
+# Agent.run_training("")
 
+Agent = AC_agent(args)
+Agent.run_training("ActorCritic/",100)
+Agent.evaluate("ActorCritic/",True)
 
