@@ -48,7 +48,7 @@ class Agent(object, metaclass=ABCMeta):
         
         fig, (ax1, ax2) = plt.subplots(1, 2,figsize=(10,4.5), dpi= 120, facecolor='w', edgecolor='k')
         ax1.plot(range(0,len(rewards)),rewards)
-        ax2.plot(range(self.mean_window-1,len(rewards)), np.convolve(rewards, np.ones(mean_window)/mean_window, mode='valid'),c='m')
+        ax2.plot(range(mean_window-1,len(rewards)), np.convolve(rewards, np.ones(mean_window)/mean_window, mode='valid'),c='m')
         ax1.set_title("Rewards vs Episode",fontweight='bold',fontsize = 11)
         ax2.set_title("{} Avg Rewards vs Episode".format(mean_window),fontweight='bold',fontsize = 11)
         fig.suptitle('Training Performance\n\n',fontweight='bold',fontsize = 14)
