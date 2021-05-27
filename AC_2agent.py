@@ -46,7 +46,7 @@ class AC_2agent(Agent):
     # method = "AC"
     # env=CartsPolesEnv()
 
-    def __init__(self,args):
+    def __init__(self,args,infostate='full'):
         self.method = "2Agent_AC"
         self.n = args['n_episode']
         self.alpha = args['alpha']
@@ -57,24 +57,28 @@ class AC_2agent(Agent):
         self.mean_window = args['mean_window']
         self.horizon=args['horizon']
         self.test_angles = args['test_angles']
+        self.infostate = infostate
 
-        env = CartsPoles2Env()
+        env = CartsPoles2Env(self.infostate)
         self.input_dim = env.observation_space.shape[0]
         self.output_dim = env.action_space.n
         self.actor1 = Actor(self.input_dim, self.output_dim,self.nn_hidden1_dim,self.nn_hidden2_dim)
         self.actor2 = Actor(self.input_dim, self.output_dim,self.nn_hidden1_dim,self.nn_hidden2_dim)
-        self.critic = Critic(self.input_dim, self.output_dim,self.nn_hidden1_dim,self.nn_hidden2_dim)
+        self.critic1 = Critic(self.input_dim, self.output_dim,self.nn_hidden1_dim,self.nn_hidden2_dim)
+        self.critic2 = Critic(self.input_dim, self.output_dim,self.nn_hidden1_dim,self.nn_hidden2_dim)
 
         self.rewards_history = []
 
     def save(self, dirname: str) -> None:
         torch.save(self.actor1.state_dict(), dirname + 'actor1.pkl')
         torch.save(self.actor2.state_dict(), dirname + 'actor2.pkl')
-        torch.save(self.critic.state_dict(), dirname + 'critic.pkl')
+        torch.save(self.critic1.state_dict(), dirname + 'critic1.pkl')
+        torch.save(self.critic2.state_dict(), dirname + 'critic2.pkl')
         torch.save(self.rewards_history, dirname + 'reward_history.pkl')
         torch.save(self.actor1.state_dict(), dirname + 'Archive/actor1_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
         torch.save(self.actor2.state_dict(), dirname + 'Archive/actor2_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
-        torch.save(self.critic.state_dict(), dirname + 'Archive/critic_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
+        torch.save(self.critic1.state_dict(), dirname + 'Archive/critic1_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
+        torch.save(self.critic2.state_dict(), dirname + 'Archive/critic2_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
         torch.save(self.rewards_history, dirname + 'Archive/reward_history_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
 
         print('Model saved to {}'.format(dirname))
@@ -82,10 +86,12 @@ class AC_2agent(Agent):
     def load(self, dirname: str) -> None:
         a1_model = torch.load(dirname + 'actor1.pkl')
         a2_model = torch.load(dirname + 'actor2.pkl')
-        c_model = torch.load(dirname + 'critic.pkl')
+        c1_model = torch.load(dirname + 'critic1.pkl')
+        c2_model = torch.load(dirname + 'critic2.pkl')
         self.actor1.load_state_dict(a1_model)
         self.actor2.load_state_dict(a2_model)
-        self.critic.load_state_dict(c_model)
+        self.critic1.load_state_dict(c1_model)
+        self.critic2.load_state_dict(c2_model)
         self.rewards_history = torch.load(dirname + 'reward_history.pkl')
 
         print('Model loaded from {}'.format(dirname))
@@ -103,22 +109,28 @@ class AC_2agent(Agent):
 
     def run_training(self, dirname: str, print_log: int) -> None:
 
-        env = CartsPoles2Env()
+        env = CartsPoles2Env(self.infostate)
 
         optimizerA1 = optim.Adam(self.actor1.parameters(),lr=self.alpha)
         optimizerA2 = optim.Adam(self.actor2.parameters(),lr=self.alpha)
-        optimizerC = optim.Adam(self.critic.parameters(),lr=self.alpha)
+        optimizerC1 = optim.Adam(self.critic1.parameters(),lr=self.alpha)
+        optimizerC2 = optim.Adam(self.critic2.parameters(),lr=self.alpha)
         rewards = self.rewards_history
         times = []
 
         for episode in tqdm(range(self.n),ncols=100):
 
             Angle = (np.random.rand()*2*self.rand_angle)-self.rand_angle
-            state = env.reset(Angle)
+            
+            if self.infostate == 'full':
+                state = env.reset(Angle)
+            else:
+                state1,state2 = env.reset(Angle)
 
             log_probs1 = []
             log_probs2 = []
-            values = []
+            values1 = []
+            values2 = []
             reward_train = []
             masks = []
             entropy1 = 0
@@ -130,12 +142,21 @@ class AC_2agent(Agent):
 
             while not done:
                 # env.render()
-                state = torch.FloatTensor(state)
-                dist1, dist2, value = self.actor1(state), self.actor2(state), self.critic(state)
+                if self.infostate == 'full':
+                    state = torch.FloatTensor(state)
+                    dist1, dist2, value1, value2 = self.actor1(state), self.actor2(state), self.critic1(state), self.critic2(state)
+                else:
+                    state1 = torch.FloatTensor(state1)
+                    state2 = torch.FloatTensor(state2)
+                    dist1, dist2, value1, value2 = self.actor1(state1), self.actor2(state2), self.critic1(state1), self.critic2(state2)
 
                 action1 = dist1.sample()
                 action2 = dist2.sample()
-                next_state, reward, done, info = env.step(action1,action2)
+
+                if self.infostate == 'full':
+                    next_state, reward, done, info = env.step(action1,action2)
+                else:
+                    next_state1, next_state2, reward, done, info = env.step(action1,action2)
 
                 log_prob1 = dist1.log_prob(action1).unsqueeze(0)
                 entropy1 += dist1.entropy().mean()
@@ -145,11 +166,17 @@ class AC_2agent(Agent):
 
                 log_probs1.append(log_prob1)
                 log_probs2.append(log_prob2)
-                values.append(value)
+                values1.append(value1)
+                values2.append(value2)
+
                 reward_train.append(torch.tensor([reward], dtype=torch.float))
                 masks.append(torch.tensor([1-done], dtype=torch.float))
 
-                state = next_state
+                if self.infostate == 'full':
+                    state = next_state
+                else:
+                    state1 = next_state1
+                    state2 = next_state2
 
                 ep_reward += reward
 
@@ -159,30 +186,47 @@ class AC_2agent(Agent):
                     self.save(dirname)
                     break
 
-            next_state = torch.FloatTensor(next_state)
-            next_value = self.critic(next_state)
-            returns = self.compute_returns(next_value, reward_train, masks)
+            if self.infostate == 'full':
+                next_state = torch.FloatTensor(next_state)
+                next_value1 = self.critic1(next_state)
+                next_value2 = self.critic2(next_state)
+
+            else:
+                next_state1 = torch.FloatTensor(next_state1)
+                next_state2 = torch.FloatTensor(next_state2)
+                next_value1 = self.critic1(next_state1)
+                next_value2 = self.critic2(next_state2)
+
+            returns1 = self.compute_returns(next_value1, reward_train, masks)
+            returns2 = self.compute_returns(next_value2, reward_train, masks)
 
             log_probs1 = torch.cat(log_probs1)
             log_probs2 = torch.cat(log_probs2)
-            returns = torch.cat(returns).detach()
-            values = torch.cat(values)
+            returns1 = torch.cat(returns1).detach()
+            returns2 = torch.cat(returns2).detach()
+            values1 = torch.cat(values1)
+            values2 = torch.cat(values2)
 
-            advantage = returns - values
+            advantage1 = returns1 - values1
+            advantage2 = returns2 - values2
 
-            actor1_loss = -(log_probs1 * advantage.detach()).mean()
-            actor2_loss = -(log_probs2 * advantage.detach()).mean()
-            critic_loss = advantage.pow(2).mean()
+            actor1_loss = -(log_probs1 * advantage1.detach()).mean()
+            actor2_loss = -(log_probs2 * advantage2.detach()).mean()
+            critic1_loss = advantage1.pow(2).mean()
+            critic2_loss = advantage2.pow(2).mean()
 
             optimizerA1.zero_grad()
             optimizerA2.zero_grad()
-            optimizerC.zero_grad()
+            optimizerC1.zero_grad()
+            optimizerC2.zero_grad()
             actor1_loss.backward()
             actor2_loss.backward()
-            critic_loss.backward()
+            critic1_loss.backward()
+            critic2_loss.backward()
             optimizerA1.step()
             optimizerA2.step()
-            optimizerC.step()
+            optimizerC1.step()
+            optimizerC2.step()
 
             rewards.append(ep_reward)
             times.append(info['time'])
@@ -193,45 +237,55 @@ class AC_2agent(Agent):
         self.plot_training(rewards,self.mean_window,self.method,dirname)
         env.close()
         print('Done Training!'.format())
-        # self.evaluate(True)
 
         # end def run_training
 
     def evaluate(self, dirname: str, plot: bool) -> None:
 
-        env = CartsPoles2Env()
+        env = CartsPoles2Env(self.infostate)
 
         tot_rewards = np.zeros(np.shape(self.test_angles)[0])
 
         for i,iAngle in enumerate(tqdm(self.test_angles)):
-            s = env.reset(iAngle)
+            if self.infostate == 'full':
+                s = env.reset(iAngle)
+            else:
+                s1,s2 = env.reset(iAngle)
+
             done = False
             ep_rewards = 0
-            prev = 0
 
             duration = 0
 
             while (duration <= self.horizon):
-                state = torch.FloatTensor(s)
-                dist1 = self.actor1(state)
-                dist2 = self.actor2(state)
+                if self.infostate == 'full':
+                    state = torch.FloatTensor(s)
+                    dist1 = self.actor1(state)
+                    dist2 = self.actor2(state)
+                else:
+                    state1 = torch.FloatTensor(s1)
+                    state2 = torch.FloatTensor(s2)
+                    dist1 = self.actor1(state1)
+                    dist2 = self.actor2(state2)
+
+
                 a1 = dist1.sample()
                 a2 = dist2.sample()
-                s2, r, done, info = env.step(a1,a2)
+
+                if self.infostate == 'full': s, r, done, info = env.step(a1,a2)
+                else: s1, s2, r, done, info = env.step(a1,a2)
 
                 duration = info['time']
 
                 ep_rewards += r
 
-                if done:
-                    break 
-                s = s2
+                if done: break 
 
             tot_rewards[i] = duration
             env.close()
 
         if plot: 
-            fig, ax0 = plt.subplots(figsize=(6,3.5), dpi= 130, facecolor='w', edgecolor='k')
+            fig, ax0 = plt.subplots(figsize=(6,4), dpi= 130, facecolor='w', edgecolor='k')
             ax0.plot(self.test_angles,tot_rewards,c='g')
             ax0.set_title("Start Angle vs Episode Length",fontweight='bold',fontsize = 15)
             ax0.set_ylabel("Episode Length (Seconds)",fontweight='bold',fontsize = 12)

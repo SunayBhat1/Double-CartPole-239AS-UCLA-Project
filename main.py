@@ -8,7 +8,7 @@ directory = "ActorCritic_2Agent/"
 args = {
         "gamma" : 0.99, # All
         
-        "n_episode" : 15000, # All
+        "n_episode" : 5000, # All
 
         "rand_angle" : np.pi/10, # All
 
@@ -43,8 +43,15 @@ Agent=DQN_agent(args)
 Agent.load("dqn_end.pkl")
 Agent.evaluate(True)
 
+<<<<<<< HEAD
 # Agent = AC_2agent(args)
 # # Agent.load("ActorCritic/")
 # Agent.run_training(directory,100)
 # Agent.evaluate(directory,True)
+=======
+Agent = AC_2agent(args,'full')
+Agent.load(directory)
+Agent.run_training(directory,100)
+Agent.evaluate(directory,True)
+>>>>>>> 276aab9fc285c9d52c42ced016da2dde35b32732
 
