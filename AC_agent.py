@@ -189,7 +189,6 @@ class AC_agent(Agent):
             s = env.reset(iAngle)
             done = False
             ep_rewards = 0
-            prev = 0
 
             duration = 0
 
@@ -197,21 +196,19 @@ class AC_agent(Agent):
                 state = torch.FloatTensor(s)
                 dist = self.actor(state)
                 a = dist.sample()
-                s2, r, done, info = env.step(a)
+                s, r, done, info = env.step(a)
 
                 duration = info['time']
 
                 ep_rewards += r
 
-                if done:
-                    break 
-                s = s2
+                if done: break
 
             tot_rewards[i] = duration
             env.close()
 
         if plot: 
-            fig, ax0 = plt.subplots(figsize=(6,3.5), dpi= 130, facecolor='w', edgecolor='k')
+            fig, ax0 = plt.subplots(figsize=(6,4), dpi= 130, facecolor='w', edgecolor='k')
             ax0.plot(self.test_angles,tot_rewards,c='g')
             ax0.set_title("Start Angle vs Episode Length",fontweight='bold',fontsize = 15)
             ax0.set_ylabel("Episode Length (Seconds)",fontweight='bold',fontsize = 12)

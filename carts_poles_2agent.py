@@ -8,7 +8,7 @@ import numpy as np
 
 class CartsPoles2Env(gym.Env):
 
-    def __init__(self, angle=0, dt=1/100, force_mag=5):
+    def __init__(self, infostate = 'full', angle=0, dt=1/100, force_mag=5):
         # dt is the simulation step
 
         #gym.Env.__init__(self)
@@ -16,6 +16,7 @@ class CartsPoles2Env(gym.Env):
         self._init_objects(angle)
         self.dt = dt
         self.force_mag = force_mag
+        self.infostate = infostate
 
         self.action_space = spaces.Discrete(3)
         self.action_tuple = (-1,0,1)
@@ -24,19 +25,31 @@ class CartsPoles2Env(gym.Env):
         self.theta_threshold_radians = 12 * 2 * math.pi / 360
         self.x_threshold = 4
 
-        high = np.array([self.x_threshold * 2,
-                    np.finfo(np.float32).max,
-                    self.x_threshold * 2,
-                    np.finfo(np.float32).max,
-                    2 * math.pi,
-                    np.finfo(np.float32).max,
-                    2 * math.pi,
-                    np.finfo(np.float32).max,
-                    2 * math.pi,
-                    np.finfo(np.float32).max,
-                    np.finfo(np.float32).max,
-                    np.finfo(np.float32).max],
-                dtype=np.float32)
+        if self.infostate == 'full':
+            high = np.array([self.x_threshold * 2,
+                        np.finfo(np.float32).max,
+                        self.x_threshold * 2,
+                        np.finfo(np.float32).max,
+                        2 * math.pi,
+                        np.finfo(np.float32).max,
+                        2 * math.pi,
+                        np.finfo(np.float32).max,
+                        2 * math.pi,
+                        np.finfo(np.float32).max,
+                        np.finfo(np.float32).max,
+                        np.finfo(np.float32).max],
+                    dtype=np.float32)
+
+        else:
+            high = np.array([self.x_threshold * 2,
+                        np.finfo(np.float32).max,
+                        2 * math.pi,
+                        np.finfo(np.float32).max,
+                        2 * math.pi,
+                        np.finfo(np.float32).max,
+                        np.finfo(np.float32).max,
+                        np.finfo(np.float32).max],
+                    dtype=np.float32)
 
         self.observation_space = spaces.Box(-high, high, dtype=np.float32)
 
@@ -168,7 +181,13 @@ class CartsPoles2Env(gym.Env):
 
         xp, yp = self.pend3_body.position[0], self.pend3_body.position[1]
 
-        self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
+        if self.infostate == 'full':
+            self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
+            
+        else:
+            self.state1 = (x1, x1_dot, t1, w1, tp, wp, xp, yp)
+            self.state2 = (x2, x2_dot, t2, w2, tp, wp, xp, yp)
+
         # self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp)
         # self.state = (x1, x2, tp)
         
@@ -199,33 +218,43 @@ class CartsPoles2Env(gym.Env):
             self.time=self.time+self.dt
         else:
             reward = 0
+        if self.infostate == 'full':
+            return np.array(self.state), reward, done, {'time':self.time}
+        else:
+            return np.array(self.state1), np.array(self.state2), reward, done, {'time':self.time}
 
-        return np.array(self.state), reward, done, {'time':self.time}
 
     def reset(self,angle=0):
-         if self.space:
-             del self.space
-         self.time=0
-         self._init_objects(angle)
+        if self.space:
+            del self.space
+        self.time=0
+        self._init_objects(angle)
         
-         x1 = self.cart1_body.position[0]
-         x1_dot = self.cart1_body.velocity[0]
-         x2 = self.cart2_body.position[0]
-         x2_dot = self.cart2_body.position[0]
-         tp = self.pend3_body.angle
-         wp = self.pend3_body.angular_velocity
+        x1 = self.cart1_body.position[0]
+        x1_dot = self.cart1_body.velocity[0]
+        x2 = self.cart2_body.position[0]
+        x2_dot = self.cart2_body.position[0]
+        tp = self.pend3_body.angle
+        wp = self.pend3_body.angular_velocity
 
-         t1 = self.pend1_body.angle
-         w1 = self.pend1_body.angular_velocity
+        t1 = self.pend1_body.angle
+        w1 = self.pend1_body.angular_velocity
 
-         t2 = self.pend2_body.angle
-         w2 = self.pend2_body.angular_velocity
+        t2 = self.pend2_body.angle
+        w2 = self.pend2_body.angular_velocity
 
-         xp, yp = self.pend3_body.position[0], self.pend3_body.position[1]
+        xp, yp = self.pend3_body.position[0], self.pend3_body.position[1]
 
-         self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
+        if self.infostate == 'full':
+            self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
+            return np.array(self.state)
+        
+        else:
+            self.state1 = (x1, x1_dot, t1, w1, tp, wp, xp, yp)
+            self.state2 = (x2, x2_dot, t2, w2, tp, wp, xp, yp)
+            return np.array(self.state1), np.array(self.state2)
 
-         return np.array(self.state)
+            
 
     def render(self, mode="human"):
         
