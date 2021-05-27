@@ -10,6 +10,7 @@ import gym
 from collections import namedtuple
 import time
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 class DQN(torch.nn.Module):
     def __init__(self, input_dim: int, output_dim: int, hidden_dim: int) -> None:
@@ -105,7 +106,7 @@ class DQN_agent(Agent):
         self.dqn.train()
         if perform/repeats> .95:
             return True
-        return False
+        return False, perform/repeats
 
     def train(self,batch_size,replay_memory):
         states, actions, next_states, rewards, done = replay_memory.sample(batch_size)
@@ -149,45 +150,64 @@ class DQN_agent(Agent):
                     done=True
             rewards[i] = total_reward
             times[i] = info['time']
-            if i %100==0:
-                if replay_memory.length()>self.batch_size:
+            if replay_memory.length()>self.batch_size:
                     self.train(self.batch_size,replay_memory)
-                if self.evaluate_MC():
+            if i %100==0:
+                tqdm.write('Episode: {}, Seconds: {:.4f}'.format(i, info['time']))
+                good, performance=self.evaluate_MC()
+                tqdm.write('Episode: {}, Average Seconds: {:.4f}'.format(i, performance))
+                if good:
                     torch.save(self.dqn.state_dict(),dirname+'dqn.pkl')
                     torch.save(self.dqn.state_dict(), dirname + 'Archive/dqn' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
-    
+        torch.save(self.dqn.state_dict(),dirname+'dqn_end.pkl')
+
     def save(self, dirname: str) -> None:
         torch.save(self.dqn.state_dict(), dirname)
     
     def load(self, dirname: str) -> None:
         model=torch.load(dirname)
-        self.dqn.load_state_dict(dirname+model)
+        self.dqn.load_state_dict(model)
         
     def plot_training(self, rewards, times) -> None:
         return super().plot_training(rewards, times)
+
     def evaluate(self,plot: bool) -> bool:
-        for i, iAngle in enumerate(tqdm(self.test_angles)):
-            s = DQN_agent.env.reset(iAngle)
+        env = CartsPolesEnv()
+
+        tot_rewards = np.zeros(np.shape(self.test_angles)[0])
+
+        for i,iAngle in enumerate(tqdm(self.test_angles)):
+            s = env.reset(iAngle)
             done = False
             ep_rewards = 0
             prev = 0
 
-            time = 0
+            duration = 0
 
-            while (time <= self.horizon):
-                a = self.get_action(s, eps)
-                s2, r, done, info = DQN_agent.env.step(a)
-                tot_reward += r
-                s = s2
-                time=info['time']
+            while (duration <= self.horizon):
+                a=self.select_action(s,0)
+                s2, r, done, info = env.step(a)
+
+                duration = info['time']
+
+                ep_rewards += r
 
                 if done:
                     break 
                 s = s2
 
-        tot_rewards[i] = time
+            tot_rewards[i] = duration
+            env.close()
+        if plot: 
+            fig, ax0 = plt.subplots(figsize=(6,3.5), dpi= 130, facecolor='w', edgecolor='k')
+            ax0.plot(self.test_angles,tot_rewards,c='g')
+            ax0.set_title("Start Angle vs Episode Length",fontweight='bold',fontsize = 15)
+            ax0.set_ylabel("Episode Length (Seconds)",fontweight='bold',fontsize = 12)
+            ax0.set_xlabel("Start Angle (Radians)",fontweight='bold',fontsize = 12)
+            ax0.grid()
+            fig.savefig('Plots/' + '_Results_' + time.strftime("%Y%m%d-%H%M%S") + '.png')
+            plt.show()
 
-        DQN_agent.env.close()
     def get_Q(self, states: np.ndarray) -> torch.FloatTensor:
         """Returns `Q-value`
         Args:
