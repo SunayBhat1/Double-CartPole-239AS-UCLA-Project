@@ -1,4 +1,4 @@
-# from DQN_agent import DQN_agent
+from DQN_agent import DQN_agent
 from AC_agent import AC_agent
 from AC_2agent import AC_2agent
 import numpy as np
@@ -39,11 +39,12 @@ args = {
         'alpha': 0.0001 # AC
     }
 
-# Agent=DQN_agent(args)
-# Agent.run_training("")
+Agent=DQN_agent(args)
+Agent.load("dqn_end.pkl")
+Agent.evaluate(True)
 
-Agent = AC_2agent(args)
-# Agent.load("ActorCritic/")
-Agent.run_training(directory,100)
-Agent.evaluate(directory,True)
+# Agent = AC_2agent(args)
+# # Agent.load("ActorCritic/")
+# Agent.run_training(directory,100)
+# Agent.evaluate(directory,True)
 
