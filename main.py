@@ -8,7 +8,7 @@ directory = "ActorCritic_2Agent/"
 args = {
         "gamma" : 0.99, # All
         
-        "n_episode" : 5000, # All
+        "n_episode" : 100, # All
 
         "rand_angle" : np.pi/10, # All
 
