@@ -105,7 +105,7 @@ class DQN_agent(Agent):
                 
         self.dqn.train()
         if perform/repeats> .95:
-            return True
+            return True, perform/repeats
         return False, perform/repeats
 
     def train(self,batch_size,replay_memory):
