@@ -6,8 +6,9 @@ from carts_poles import CartsPolesEnv
 from torch.optim.lr_scheduler import StepLR
 import numpy as np
 import random
-import tqdm as tqdm
+from tqdm import tqdm
 import matplotlib.pyplot as plt
+import warnings
 import torch.nn.functional as F
 
 class QNetwork(nn.Module):
@@ -105,20 +106,17 @@ class DDQN_agent(Agent):
         biggest = 0
         measure_step=100
         eps=1
-        for episode in range(self.n_episode):
-            # display the performance
+        for episode in tqdm(range(self.n_episode)):
             stop+=1
             if (episode+1) % measure_step == 0:
                 performance.append([episode, self.evaluate_MC()[1]])
                 if biggest < performance[-1][1]:
                     biggest = performance[-1][1]
-                print("Episode: ", episode)
-                print("rewards: ", performance[-1][1])
-                print("lr: ", self.scheduler.get_lr()[0])
-                print("eps: ", eps)
-                if performance[-1][1]>=self.horizon-50:
+                if performance[-1][1]>=self.horizon:
                     print("Ended early!!!!")
                     break
+            if (episode+1) % print_log == 0:
+                tqdm.write('Episode: {}, Seconds: {:.4f}, Learning Rate: {:.4f}, epsilon: {:.4f}'.format(episode,  performance[-1][1], self.scheduler.get_lr()[0],eps))
             randAngle =  (np.random.rand()*2*self.rand_angle)-self.rand_angle
             state = DDQN_agent.env.reset(randAngle)
             memory.state.append(state)
@@ -136,14 +134,15 @@ class DDQN_agent(Agent):
                 # save state, action, reward sequence
                 memory.update(state, action, reward, done)
 
-            if memory.length()>self.batch_size and episode % 50 == 0:
-                for _ in range(50):
+            if memory.length()>self.batch_size and episode % 10 == 0:
+                for _ in range(10):
                     self.train(memory)
 
                 # transfer new parameter from Q_1 to Q_2
                 self.update_parameters(self.Q_1, self.Q_2)
 
             # update learning rate and eps
+            warnings.filterwarnings("ignore")
             self.scheduler.step()
             eps_decay=(1-self.min_eps)/self.max_episode
             eps = max(eps*eps_decay, self.min_eps)
