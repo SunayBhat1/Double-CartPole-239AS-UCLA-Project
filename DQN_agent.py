@@ -78,7 +78,6 @@ class DQN_agent(Agent):
         if np.random.rand() < epsilon:
             return np.random.choice(self.output_dim)
         else:
-            self.dqn.train(mode=False)
             scores = self.get_Q(state)
             _, argmax = torch.max(scores.data, 1)
             return int(argmax.numpy())
@@ -104,7 +103,7 @@ class DQN_agent(Agent):
                     done=True
                 
         self.dqn.train()
-        if perform/repeats> .95:
+        if perform/repeats>=.99:
             return True, perform/repeats
         return False, perform/repeats
 
@@ -123,7 +122,7 @@ class DQN_agent(Agent):
         loss.backward()
         self.optim.step()
 
-    def run_training(self, dirname: str ) -> list[any, any]:
+    def run_training(self, dirname: str, print_log: int) -> list[any, any]:
         rewards = np.zeros(self.n_episode)
         times = np.zeros(self.n_episode)
         replay_memory = Memory(self.capacity)
@@ -152,13 +151,13 @@ class DQN_agent(Agent):
             times[i] = info['time']
             if replay_memory.length()>self.batch_size:
                     self.train(self.batch_size,replay_memory)
-            if i %100==0:
-                tqdm.write('Episode: {}, Seconds: {:.4f}'.format(i, info['time']))
+            if i % print_log==0:
+                secounds=info['time']
                 good, performance=self.evaluate_MC()
-                tqdm.write('Episode: {}, Average Seconds: {:.4f}'.format(i, performance))
+                tqdm.write('Episode: {}, Seconds: {:.4f}, Average Seconds: {:.4f}'.format(i,secounds, performance))
                 if good:
-                    torch.save(self.dqn.state_dict(),dirname+'dqn.pkl')
-                    torch.save(self.dqn.state_dict(), dirname + 'Archive/dqn' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
+                    torch.save(self.dqn.state_dict(),dirname+'dqn.pt')
+                    torch.save(self.dqn.state_dict(), dirname + 'Archive/dqn' + time.strftime("%Y%m%d-%H%M%S") + '.pt')
         torch.save(self.dqn.state_dict(),dirname+'dqn_end.pkl')
 
     def save(self, dirname: str) -> None:
@@ -217,4 +216,6 @@ class DQN_agent(Agent):
         """
         states = torch.autograd.Variable(torch.Tensor((states.reshape(-1, self.input_dim))))
         self.dqn.train(mode=False)
-        return self.dqn(states)
+        states=self.dqn(states)
+        self.dqn.train(mode=True)
+        return states

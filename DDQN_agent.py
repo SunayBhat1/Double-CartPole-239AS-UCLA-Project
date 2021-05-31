@@ -28,9 +28,10 @@ class QNetwork(nn.Module):
         return x1
 
 class DDQN_agent(Agent):
-    env=CartsPolesEnv()
+    
     model="DDQN"
     def __init__(self, args):
+        self.env=CartsPolesEnv()
         self.n_episode=args["n_episode"]
         self.batch_size=args["batch_size"]
         self.rand_angle = args['rand_angle']
@@ -42,9 +43,9 @@ class DDQN_agent(Agent):
         self.horizon=args['horizon']
         self.test_angles = args['test_angles']
         self.gamma=args["gamma"]
-        self.Q_1 = QNetwork(action_dim=DDQN_agent.env.action_space.n, state_dim=DDQN_agent.env.observation_space.shape[0],
+        self.Q_1 = QNetwork(action_dim=self.env.action_space.n, state_dim=self.env.observation_space.shape[0],
                                         hidden_dim=self.hidden_dim)
-        self.Q_2 = QNetwork(action_dim=DDQN_agent.env.action_space.n, state_dim=DDQN_agent.env.observation_space.shape[0],
+        self.Q_2 = QNetwork(action_dim=self.env.action_space.n, state_dim=self.env.observation_space.shape[0],
                                         hidden_dim=self.hidden_dim)
         for param in self.Q_2.parameters():
             param.requires_grad = False
@@ -100,6 +101,7 @@ class DDQN_agent(Agent):
             plt.show()
     
     def run_training(self, dirname: str, print_log: int) -> None:
+        self.Q_1.train()
         memory = Memory(self.capacity)
         performance = []
         stop = 0
@@ -118,24 +120,23 @@ class DDQN_agent(Agent):
             if (episode+1) % print_log == 0:
                 tqdm.write('Episode: {}, Seconds: {:.4f}, Learning Rate: {:.4f}, epsilon: {:.4f}'.format(episode,  performance[-1][1], self.scheduler.get_lr()[0],eps))
             randAngle =  (np.random.rand()*2*self.rand_angle)-self.rand_angle
-            state = DDQN_agent.env.reset(randAngle)
+            state = self.env.reset(randAngle)
             memory.state.append(state)
 
             done = False
             i = 0
             while not done:
-                
                 action = self.select_action(state, eps)
-                state, reward, done, _ = self.env.step(action)
-                i += reward
+                state, reward, done, info= self.env.step(action)
+                i += info['time']
                 if i > self.horizon:
                     done = True
 
                 # save state, action, reward sequence
                 memory.update(state, action, reward, done)
 
-            if memory.length()>self.batch_size and episode % 10 == 0:
-                for _ in range(10):
+            if memory.length()>self.batch_size and episode % 50 == 0:
+                for _ in range(50):
                     self.train(memory)
 
                 # transfer new parameter from Q_1 to Q_2
@@ -161,23 +162,23 @@ class DDQN_agent(Agent):
         for _ in range(repeats):
             tot_reward=0
             randAngle =  (np.random.rand()*2*self.rand_angle)-self.rand_angle
-            state = DDQN_agent.env.reset(randAngle)
+            state = self.env.reset(randAngle)
             done = False
             while not done:
                 state = torch.Tensor(state)
                 with torch.no_grad():
                     values = self.Q_1(state)
                 action = np.argmax(values.numpy())
-                state, reward, done, _ = DDQN_agent.env.step(action)
+                state, reward, done, info= self.env.step(action)
                 perform += reward
-                tot_reward+=reward
+                tot_reward+=info['time']
                 if tot_reward>self.horizon:
                     done=True
                 
         self.Q_1.train()
-        if perform/repeats> .95:
-            return True, perform/repeats
-        return False, perform/repeats
+        if tot_reward/repeats> .95:
+            return True, tot_reward/repeats
+        return False, tot_reward/repeats
 
     def select_action(self, state, eps):
         state = torch.Tensor(state)
@@ -186,7 +187,7 @@ class DDQN_agent(Agent):
 
         # select a random action wih probability eps
         if random.random() <= eps:
-            action = np.random.randint(0, DDQN_agent.env.action_space.n)
+            action = np.random.randint(0, self.env.action_space.n)
         else:
             action = np.argmax(values.numpy())
 
@@ -207,7 +208,6 @@ class DDQN_agent(Agent):
         expected_q_value = rewards + self.gamma * next_q_value * (1 - is_done)
 
         loss = (q_value - expected_q_value.detach()).pow(2).mean()
-
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
