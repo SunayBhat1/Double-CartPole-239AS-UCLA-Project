@@ -72,7 +72,7 @@ class AC_agent(Agent):
         torch.save(self.rewards_history, dirname + 'reward_history.pkl')
         torch.save(self.actor.state_dict(), dirname + 'Archive/actor_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
         torch.save(self.critic.state_dict(), dirname + 'Archive/critic_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
-        torch.save(self.rewards_history, dirname + 'Archive/reward_history_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
+        # torch.save(self.rewards_history, dirname + 'Archive/reward_history_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
 
         print('Model saved to {}'.format(dirname))
     
@@ -81,7 +81,7 @@ class AC_agent(Agent):
         c_model = torch.load(dirname + 'critic.pkl')
         self.actor.load_state_dict(a_model)
         self.critic.load_state_dict(c_model)
-        self.rewards_history = torch.load(dirname + 'reward_history.pkl')
+        # self.rewards_history = torch.load(dirname + 'reward_history.pkl')
 
         print('Model loaded from {}'.format(dirname))
 
@@ -216,4 +216,26 @@ class AC_agent(Agent):
             ax0.grid()
             fig.savefig(dirname + 'Plots/' + self.method + '_Results_' + time.strftime("%Y%m%d-%H%M%S") + '.png')
             plt.show()
+
+    def renderRun(self) -> None:
+
+        env = CartsPolesEnv()
+
+        s = env.reset(0.02)
+
+        done = False
+
+        while not done:
+            env.render()
+            state = torch.FloatTensor(s)
+            dist = self.actor(state)
+            a = dist.sample()
+            s, _, done, info = env.step(a)
+
+            duration = info['time']
+            
+        print('Run Time: {:.2f}'.format(info['time']))
+        env.close()
+
+
             

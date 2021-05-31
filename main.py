@@ -1,14 +1,14 @@
-from DQN_agent import DQN_agent
+# from DQN_agent import DQN_agent
 from AC_agent import AC_agent
 from AC_2agent import AC_2agent
 import numpy as np
 
-directory = "ActorCritic_2Agent/"
+directory = "ActorCritic/"
 
 args = {
         "gamma" : 0.99, # All
         
-        "n_episode" : 100, # All
+        "n_episode" : 40000, # All
 
         "rand_angle" : np.pi/10, # All
 
@@ -39,19 +39,11 @@ args = {
         'alpha': 0.0001 # AC
     }
 
-Agent=DQN_agent(args)
-Agent.load("dqn_end.pkl")
-Agent.evaluate(True)
+# Agent=DQN_agent(args)
+# Agent.load("dqn_end.pkl")
+# Agent.evaluate(True)
 
-<<<<<<< HEAD
-# Agent = AC_2agent(args)
-# # Agent.load("ActorCritic/")
-# Agent.run_training(directory,100)
-# Agent.evaluate(directory,True)
-=======
-Agent = AC_2agent(args,'full')
+Agent = AC_agent(args)
 Agent.load(directory)
-Agent.run_training(directory,100)
-Agent.evaluate(directory,True)
->>>>>>> 276aab9fc285c9d52c42ced016da2dde35b32732
+Agent.renderRun()
 
