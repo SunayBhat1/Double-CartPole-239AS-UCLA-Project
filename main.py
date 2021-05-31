@@ -1,4 +1,5 @@
-# from DQN_agent import DQN_agent
+from DQN_agent import DQN_agent
+from DDQN_agent import DDQN_agent
 from AC_agent import AC_agent
 from AC_2agent import AC_2agent
 import numpy as np
@@ -8,9 +9,9 @@ directory = "ActorCritic/"
 args = {
         "gamma" : 0.99, # All
         
-        "n_episode" : 40000, # All
+        "n_episode" : 10000, # All
 
-        "rand_angle" : np.pi/10, # All
+        "rand_angle" : .2, # All
 
         "mean_window" : 100, # All
 
@@ -18,15 +19,15 @@ args = {
 
         "test_angles" : np.linspace(np.pi/8,-np.pi/8,100), #ALL
 
-        "batch_size" : 256, # DQN, DDQN
+        "batch_size" : 256*2, # DQN, DDQN
 
-        "hidden_dim" : 144, # DQN, DDQN
+        "hidden_dim" : 64, # DQN, DDQN
 
         "capacity" : 50000, # DQN, DDQN
 
         "max_episode" : 50, # DQN, DDQN
 
-        "min_eps" : 0.1, # DQN, DDQN
+        "min_eps" : 0.01, # DQN, DDQN
 
         "num_saved_episode" : 3, # ????
 
@@ -40,10 +41,13 @@ args = {
     }
 
 # Agent=DQN_agent(args)
-# Agent.load("dqn_end.pkl")
+# Agent.run_training("",100)
+# Agent.load("dqn.pkl")
 # Agent.evaluate(True)
 
-Agent = AC_agent(args)
-Agent.load(directory)
-Agent.renderRun()
-
+# Agent = AC_2agent(args,'full')
+# Agent.load(directory)
+# Agent.run_training(directory,100)
+# Agent.evaluate(directory,True)
+Agent=DDQN_agent(args)
+Agent.run_training("",100)
