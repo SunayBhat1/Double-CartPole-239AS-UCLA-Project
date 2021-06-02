@@ -182,7 +182,8 @@ class CartsPoles2Env(gym.Env):
         xp, yp = self.pend3_body.position[0], self.pend3_body.position[1]
 
         if self.infostate == 'full':
-            self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
+            self.state1 = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
+            self.state2 = self.state1
             
         else:
             self.state1 = (x1, x1_dot, t1, w1, tp, wp, xp, yp)
@@ -218,10 +219,8 @@ class CartsPoles2Env(gym.Env):
             self.time=self.time+self.dt
         else:
             reward = 0
-        if self.infostate == 'full':
-            return np.array(self.state), reward, done, {'time':self.time}
-        else:
-            return np.array(self.state1), np.array(self.state2), reward, done, {'time':self.time}
+
+        return np.array(self.state1), np.array(self.state2), reward, done, {'time':self.time}
 
 
     def reset(self,angle=0):
@@ -246,13 +245,14 @@ class CartsPoles2Env(gym.Env):
         xp, yp = self.pend3_body.position[0], self.pend3_body.position[1]
 
         if self.infostate == 'full':
-            self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
-            return np.array(self.state)
+            self.state1 = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
+            self.state2 = self.state1
         
         else:
             self.state1 = (x1, x1_dot, t1, w1, tp, wp, xp, yp)
             self.state2 = (x2, x2_dot, t2, w2, tp, wp, xp, yp)
-            return np.array(self.state1), np.array(self.state2)
+        
+        return np.array(self.state1), np.array(self.state2)
 
             
 

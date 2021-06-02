@@ -72,7 +72,7 @@ class AC_agent(Agent):
         torch.save(self.rewards_history, dirname + 'reward_history.pkl')
         torch.save(self.actor.state_dict(), dirname + 'Archive/actor_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
         torch.save(self.critic.state_dict(), dirname + 'Archive/critic_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
-        # torch.save(self.rewards_history, dirname + 'Archive/reward_history_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
+        torch.save(self.rewards_history, dirname + 'Archive/reward_history_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
 
         print('Model saved to {}'.format(dirname))
     
@@ -81,13 +81,29 @@ class AC_agent(Agent):
         c_model = torch.load(dirname + 'critic.pkl')
         self.actor.load_state_dict(a_model)
         self.critic.load_state_dict(c_model)
-        # self.rewards_history = torch.load(dirname + 'reward_history.pkl')
+        self.rewards_history = torch.load(dirname + 'reward_history.pkl')
 
         print('Model loaded from {}'.format(dirname))
 
-    def plot_training(self, rewards, mean_window,method,dirname) -> None:
-        return super().plot_training(rewards, mean_window,method,dirname)
+    def plot_training(self,dirname) -> None:
+        fig, (ax1, ax2) = plt.subplots(1, 2,figsize=(10,4.5), dpi= 120, facecolor='w', edgecolor='k')
+        fig.suptitle('Training Performance\n\n',fontweight='bold',fontsize = 14)
 
+        ax1.plot(range(0,len(self.rewards_history)),self.rewards_history)
+        ax1.set_title("Rewards vs Episode",fontweight='bold',fontsize = 11)
+        ax1.set_xlabel('Episode',fontweight='bold',fontsize = 8)
+        ax1.set_ylabel('Episode Rewards',fontweight='bold',fontsize = 8)
+        ax1.grid()
+        
+        ax2.plot(range(self.mean_window-1,len(self.rewards_history)), np.convolve(self.rewards_history, np.ones(self.mean_window)/self.mean_window, mode='valid'),c='m')
+        ax2.set_title("{} Avg Rewards vs Episode".format(self.mean_window),fontweight='bold',fontsize = 11)
+        ax2.set_xlabel('Last Episode',fontweight='bold',fontsize = 8)
+        ax2.set_ylabel('Mean 100 Rewards',fontweight='bold',fontsize = 8)
+        ax2.grid()
+
+        fig.savefig(dirname + 'Plots/Training_' + time.strftime("%Y%m%d-%H%M%S") + '.png')
+        plt.pause(0.001)
+    
     def compute_returns(self, next_value, rewards, masks):
         R = next_value
         returns = []
@@ -95,6 +111,26 @@ class AC_agent(Agent):
             R = rewards[step] + self.gamma * R * masks[step]
             returns.insert(0, R)
         return returns
+
+    def plot_compTime(self, comp_times,dirname):
+        iter_times = np.diff(np.array(comp_times))
+        fig, (ax1, ax2) = plt.subplots(1, 2,figsize=(10,4.5), dpi= 120, facecolor='w', edgecolor='k')
+        fig.suptitle('Computation Performance\n\n',fontweight='bold',fontsize = 14)
+
+        ax1.plot(range(0,len(comp_times)),comp_times)
+        ax1.set_title("Cumulative Time vs Episode",fontweight='bold',fontsize = 11)
+        ax1.set_xlabel('Episode',fontweight='bold',fontsize = 8)
+        ax1.set_ylabel('Cumulative Time (Seconds)',fontweight='bold',fontsize = 8)
+        ax1.grid()
+
+        ax2.plot(range(0,len(iter_times)),iter_times)        
+        ax2.set_title("Iteration Time vs Episode",fontweight='bold',fontsize = 11)
+        ax2.set_xlabel('Episode',fontweight='bold',fontsize = 8)
+        ax2.set_ylabel('Time Per Iteration (Seconds)',fontweight='bold',fontsize = 8)  
+        ax2.grid()
+
+        fig.savefig(dirname + 'Plots/Computation_' + time.strftime("%Y%m%d-%H%M%S") + '.png')
+        plt.pause(0.001)
 
     def run_training(self, dirname: str, print_log: int) -> None:
 
@@ -104,11 +140,13 @@ class AC_agent(Agent):
         optimizerC = optim.Adam(self.critic.parameters(),lr=self.alpha)
         rewards = self.rewards_history
         times = []
+        comp_times = []
 
+        start_time = time.time()
         for episode in tqdm(range(self.n),ncols=100):
 
-            Angle = (np.random.rand()*2*self.rand_angle)-self.rand_angle
-            state = env.reset(Angle)
+            angle = (np.random.rand()*2*self.rand_angle)-self.rand_angle
+            state = env.reset(angle)
 
             log_probs = []
             values = []
@@ -146,6 +184,8 @@ class AC_agent(Agent):
                     self.save(dirname)
                     break
 
+            comp_times.append(time.time() - start_time)
+            
             next_state = torch.FloatTensor(next_state)
             next_value = self.critic(next_state)
             returns = self.compute_returns(next_value, reward_train, masks)
@@ -168,24 +208,25 @@ class AC_agent(Agent):
 
             rewards.append(ep_reward)
             times.append(info['time'])
-            if (episode % print_log == 0): tqdm.write('Episode: {}, Seconds: {:.4f}, Start Angle: {:.4f}'.format(episode, info['time'], Angle))
+            if (episode % print_log == 0): tqdm.write('Episode: {}, Seconds: {:.4f}, Start Angle: {:.4f}'.format(episode, info['time'], angle))
 
         self.rewards_history = rewards
         self.save(dirname)
-        self.plot_training(rewards,self.mean_window,self.method,dirname)
+        self.plot_training(dirname)
+        self.plot_compTime(comp_times,dirname)
         env.close()
-        print('Done Training!'.format())
+        print('Done Training {} episodes!'.format(self.n))
         # self.evaluate(True)
 
         # end def run_training
 
-    def evaluate(self, dirname: str, plot: bool) -> None:
+    def evaluate(self, dirname: str, plot: bool) -> float:
 
         env = CartsPolesEnv()
 
         tot_rewards = np.zeros(np.shape(self.test_angles)[0])
 
-        for i,iAngle in enumerate(tqdm(self.test_angles)):
+        for i,iAngle in enumerate(tqdm(self.test_angles,ncols=100)):
             s = env.reset(iAngle)
             done = False
             ep_rewards = 0
@@ -214,14 +255,16 @@ class AC_agent(Agent):
             ax0.set_ylabel("Episode Length (Seconds)",fontweight='bold',fontsize = 12)
             ax0.set_xlabel("Start Angle (Radians)",fontweight='bold',fontsize = 12)
             ax0.grid()
-            fig.savefig(dirname + 'Plots/' + self.method + '_Results_' + time.strftime("%Y%m%d-%H%M%S") + '.png')
+            fig.savefig(dirname + 'Plots/Results_' + time.strftime("%Y%m%d-%H%M%S") + '.png')
             plt.show()
 
-    def renderRun(self) -> None:
+        return np.mean(tot_rewards)
+
+    def render_run(self) -> None:
 
         env = CartsPolesEnv()
-
-        s = env.reset(0.02)
+        angle = (np.random.rand()*2*self.rand_angle)-self.rand_angle
+        s = env.reset(angle)
 
         done = False
 
@@ -232,9 +275,8 @@ class AC_agent(Agent):
             a = dist.sample()
             s, _, done, info = env.step(a)
 
-            duration = info['time']
             
-        print('Run Time: {:.2f}'.format(info['time']))
+        print('Start Angle {:.4f} Run Time: {:.2f}'.format(angle,info['time']))
         env.close()
 
 

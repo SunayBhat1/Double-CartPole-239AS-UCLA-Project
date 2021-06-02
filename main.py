@@ -1,17 +1,16 @@
-from DQN_agent import DQN_agent
-from DDQN_agent import DDQN_agent
+# from DQN_agent import DQN_agent
+# from DDQN_agent import DDQN_agent
 from AC_agent import AC_agent
 from AC_2agent import AC_2agent
 import numpy as np
 
-directory = "ActorCritic/"
 
 args = {
-        "gamma" : 0.99, # All
-        
         "n_episode" : 10000, # All
+        
+        "gamma" : 0.99, # All
 
-        "rand_angle" : .2, # All
+        "rand_angle" : .1, # All
 
         "mean_window" : 100, # All
 
@@ -40,14 +39,32 @@ args = {
         'alpha': 0.0001 # AC
     }
 
+# DQN Agent
+# directory = "DQN/"
 # Agent=DQN_agent(args)
 # Agent.run_training("",100)
 # Agent.load("dqn.pkl")
 # Agent.evaluate(True)
 
-# Agent = AC_2agent(args,'full')
+# Actor Critic Agent
+# directory = "ActorCritic/"
+# Agent=AC_agent(args)
 # Agent.load(directory)
-# Agent.run_training(directory,100)
+# Agent.run_training(directory,500)
 # Agent.evaluate(directory,True)
-Agent=DDQN_agent(args)
-Agent.run_training("",100)
+# Agent.render_run()
+
+# Actor Critic 2-Agent Full
+directory = "ActorCritic_2Agent_Full/"
+Agent = AC_2agent(args,'full')
+# Agent.load(directory)
+Agent.run_training(directory,1000)
+Agent.evaluate(directory,True)
+Agent.render_run()
+
+# Actor Critic 2-Agent Partial
+# directory = "ActorCritic_2Agent_Partial/"
+# Agent = AC_2agent(args,'partial')
+# # Agent.load(directory)
+# Agent.run_training(directory,1000)
+# Agent.evaluate(directory,True)

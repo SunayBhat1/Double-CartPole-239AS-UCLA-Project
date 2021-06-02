@@ -1,5 +1,6 @@
 from numpy import median
 import torch
+import time
 from torch import nn
 from agent import Agent, Memory
 from carts_poles import CartsPolesEnv
