@@ -4,6 +4,8 @@ import torch.nn as nn
 import pfrl
 import gym
 import pfrl.nn as pnn
+import time
+import matplotlib.pyplot as plt
 from agent import Agent
 from carts_poles import CartsPolesEnv
 from tqdm import tqdm
@@ -130,7 +132,7 @@ class Rainbow_agent(Agent):
         
         if self.load_path != None:
             print("loading")
-            self.agent = self.load(self.load_path)
+            self.load(self.load_path)
         
         
         utils.set_random_seed(args['seed'])
@@ -145,7 +147,7 @@ class Rainbow_agent(Agent):
     def evaluate(self, dirname: str, plot: bool) -> None:
 
         tot_rewards = np.zeros(np.shape(self.test_angles)[0])
-        
+        print(self.agent) 
         with self.agent.eval_mode():
             for i, iAngle in enumerate(tqdm(self.test_angles)):
                 obs = self.env.reset(iAngle)
@@ -260,7 +262,7 @@ class Rainbow_agent(Agent):
         print("agent saved in path {}.".format(dirname))
 
     def load(self, dirname: str) -> None:
-        return self.agent.load(dirname)
+        self.agent.load(dirname)
 
     def plot_training(self, rewards, times) -> None:
         return super().plot_training(rewards, times)
