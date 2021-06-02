@@ -76,7 +76,7 @@ class AC_agent(Agent):
 
         print('Model saved to {}'.format(dirname))
     
-    def load(self, dirname: str) -> None:
+    def load(self, dirname: str, file_ext: str) -> None:
         a_model = torch.load(dirname + 'actor.pkl')
         c_model = torch.load(dirname + 'critic.pkl')
         self.actor.load_state_dict(a_model)

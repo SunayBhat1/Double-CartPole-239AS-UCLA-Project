@@ -70,24 +70,26 @@ class AC_2agent(Agent):
         self.rewards_history = []
 
     def save(self, dirname: str) -> None:
-        torch.save(self.actor1.state_dict(), dirname + 'actor1.pkl')
-        torch.save(self.actor2.state_dict(), dirname + 'actor2.pkl')
-        torch.save(self.critic1.state_dict(), dirname + 'critic1.pkl')
-        torch.save(self.critic2.state_dict(), dirname + 'critic2.pkl')
+        torch.save(self.actor1.state_dict(), dirname + 'actor1.pt')
+        torch.save(self.actor2.state_dict(), dirname + 'actor2.pt')
+        torch.save(self.critic1.state_dict(), dirname + 'critic1.pt')
+        torch.save(self.critic2.state_dict(), dirname + 'critic2.pt')
         torch.save(self.rewards_history, dirname + 'reward_history.pkl')
-        torch.save(self.actor1.state_dict(), dirname + 'Archive/actor1_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
-        torch.save(self.actor2.state_dict(), dirname + 'Archive/actor2_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
-        torch.save(self.critic1.state_dict(), dirname + 'Archive/critic1_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
-        torch.save(self.critic2.state_dict(), dirname + 'Archive/critic2_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
+
+        #Archive
+        torch.save(self.actor1.state_dict(), dirname + 'Archive/actor1_' + time.strftime("%Y%m%d-%H%M%S") + '.pt')
+        torch.save(self.actor2.state_dict(), dirname + 'Archive/actor2_' + time.strftime("%Y%m%d-%H%M%S") + '.pt')
+        torch.save(self.critic1.state_dict(), dirname + 'Archive/critic1_' + time.strftime("%Y%m%d-%H%M%S") + '.pt')
+        torch.save(self.critic2.state_dict(), dirname + 'Archive/critic2_' + time.strftime("%Y%m%d-%H%M%S") + '.pt')
         torch.save(self.rewards_history, dirname + 'Archive/reward_history_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
 
         print('Model saved to {}'.format(dirname))
     
-    def load(self, dirname: str) -> None:
-        a1_model = torch.load(dirname + 'actor1.pkl')
-        a2_model = torch.load(dirname + 'actor2.pkl')
-        c1_model = torch.load(dirname + 'critic1.pkl')
-        c2_model = torch.load(dirname + 'critic2.pkl')
+    def load(self, dirname: str,file_ext: str) -> None:
+        a1_model = torch.load(dirname + 'actor1.pt')
+        a2_model = torch.load(dirname + 'actor2.pt')
+        c1_model = torch.load(dirname + 'critic1.pt')
+        c2_model = torch.load(dirname + 'critic2.pt')
         self.actor1.load_state_dict(a1_model)
         self.actor2.load_state_dict(a2_model)
         self.critic1.load_state_dict(c1_model)
@@ -306,27 +308,30 @@ class AC_2agent(Agent):
             ax0.set_ylabel("Episode Length (Seconds)",fontweight='bold',fontsize = 12)
             ax0.set_xlabel("Start Angle (Degrees)",fontweight='bold',fontsize = 12)
             ax0.grid()
-            fig.savefig(dirname + 'Plots/' + self.method + '_Results_' + time.strftime("%Y%m%d-%H%M%S") + '.png')
+            fig.savefig(dirname + 'Plots/Results_' + time.strftime("%Y%m%d-%H%M%S") + '.png')
             plt.show()
 
-    def render_run(self) -> None:
+        
+
+    def render_run(self,iters) -> None:
 
         env = CartsPoles2Env(self.infostate)
-        angle = (np.random.rand()*2*self.rand_angle)-self.rand_angle
-        s1,s2 = env.reset(angle)
 
-        done = False
+        for iEp in range(iters):
+            angle = (np.random.rand()*2*self.rand_angle)-self.rand_angle
+            s1,s2 = env.reset(angle)
 
-        while not done:
-            env.render()
-            state1 = torch.FloatTensor(s1)
-            state2 = torch.FloatTensor(s2)
-            dist1, dist2 = self.actor1(state1), self.actor2(state2)
-            a1 = dist1.sample()
-            a2 = dist2.sample()
-            s1,s2, _, done, info = env.step(a1,a2)
+            done = False
+
+            while not done:
+                env.render()
+                state1 = torch.FloatTensor(s1)
+                state2 = torch.FloatTensor(s2)
+                dist1, dist2 = self.actor1(state1), self.actor2(state2)
+                a1 = dist1.sample()
+                a2 = dist2.sample()
+                s1,s2, _, done, info = env.step(a1,a2)
 
             
-        print('Start Angle {:.4f} Run Time: {:.2f}'.format(angle,info['time']))
+        print('Start Angle Last {:.4f} Run Time Last: {:.2f}'.format(angle,info['time']))
         env.close()
-            

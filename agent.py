@@ -17,14 +17,15 @@ class Agent(object, metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def load(self, dirname: str) -> None:
+    def load(self, dirname: str, file_ext: str) -> None:
         """ Load in the network for this class
         """
         raise NotImplementedError()
      
     @abstractmethod
     def evaluate(self, dirname: str, plot: bool) -> float:
-        """ Return the performance of the agent over all the angles in the range
+        """ 
+        Return the performance of the agent over all the angles in the range
         """
         raise NotImplementedError()
 
@@ -36,7 +37,7 @@ class Agent(object, metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def render_run(self) -> None:
+    def render_run(self,iters: int) -> None:
         """ 
         Run a single episode with render (random angle)
         """
