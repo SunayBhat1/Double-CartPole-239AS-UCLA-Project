@@ -1,7 +1,7 @@
 from numpy import median
 import torch
 from torch import nn
-from agent import Agent, Memory
+from agent import Agent
 from carts_poles import CartsPolesEnv
 from torch.optim.lr_scheduler import StepLR
 import numpy as np
@@ -10,7 +10,41 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import warnings
 import torch.nn.functional as F
+import collections
+import time
+class Memory:
+    def __init__(self, len):
+        self.rewards = collections.deque(maxlen=len)
+        self.state = collections.deque(maxlen=len)
+        self.action = collections.deque(maxlen=len)
+        self.is_done = collections.deque(maxlen=len)
 
+    def update(self, state, action, reward, done):
+        # if the episode is finished we do not save to new state. Otherwise we have more states per episode than rewards
+        # and actions whcih leads to a mismatch when we sample from memory.
+        if not done:
+            self.state.append(state)
+        self.action.append(action)
+        self.rewards.append(reward)
+        self.is_done.append(done)
+
+    def sample(self, batch_size):
+        """
+        sample "batch_size" many (state, action, reward, next state, is_done) datapoints.
+        """
+        n = len(self.is_done)
+        idx = random.sample(range(0, n-1), batch_size)
+
+        return torch.Tensor(self.state)[idx], torch.LongTensor(self.action)[idx], \
+               torch.Tensor(self.state)[1+np.array(idx)], torch.Tensor(self.rewards)[idx], \
+               torch.Tensor(self.is_done)[idx]
+
+    def reset(self):
+        self.rewards.clear()
+        self.state.clear()
+        self.action.clear()
+        self.is_done.clear()
+        
 class QNetwork(nn.Module):
     def __init__(self, action_dim, state_dim, hidden_dim):
         super(QNetwork, self).__init__()
@@ -47,11 +81,6 @@ class DDQN_agent(Agent):
                                         hidden_dim=self.hidden_dim)
         self.Q_2 = QNetwork(action_dim=self.env.action_space.n, state_dim=self.env.observation_space.shape[0],
                                         hidden_dim=self.hidden_dim)
-        for param in self.Q_2.parameters():
-            param.requires_grad = False
-        
-        self.optimizer = torch.optim.Adam(self.Q_1.parameters(), lr=1e-3)
-        self.scheduler = StepLR(self.optimizer, step_size=1000, gamma=1)
 
     def load(self, dirname: str) -> None:
         model=torch.load(dirname)
@@ -101,24 +130,32 @@ class DDQN_agent(Agent):
             plt.show()
     
     def run_training(self, dirname: str, print_log: int) -> None:
-        self.Q_1.train()
+        self.update_parameters()
+
+        for param in self.Q_2.parameters():
+            param.requires_grad = False
+        
+        optimizer = torch.optim.Adam(self.Q_1.parameters(), lr=1e-3)
+        scheduler = StepLR(optimizer, step_size=1000, gamma=1)
+
         memory = Memory(self.capacity)
         performance = []
         stop = 0
         biggest = 0
         measure_step=100
+        update_step=50
         eps=1
         for episode in tqdm(range(self.n_episode)):
             stop+=1
             if (episode+1) % measure_step == 0:
                 performance.append([episode, self.evaluate_MC()[1]])
-                if biggest < performance[-1][1]:
-                    biggest = performance[-1][1]
                 if performance[-1][1]>=self.horizon:
                     print("Ended early!!!!")
                     break
             if (episode+1) % print_log == 0:
-                tqdm.write('Episode: {}, Seconds: {:.4f}, Learning Rate: {:.4f}, epsilon: {:.4f}'.format(episode,  performance[-1][1], self.scheduler.get_lr()[0],eps))
+                tqdm.write('Episode: {}, Seconds: {:.4f}, Learning Rate: {:.4f}, epsilon: {:.4f}'.format(episode,  performance[-1][1], scheduler.get_lr()[0],eps))
+
+
             randAngle =  (np.random.rand()*2*self.rand_angle)-self.rand_angle
             state = self.env.reset(randAngle)
             memory.state.append(state)
@@ -128,23 +165,22 @@ class DDQN_agent(Agent):
             while not done:
                 action = self.select_action(state, eps)
                 state, reward, done, info= self.env.step(action)
-                i += info['time']
+                i = info['time']
                 if i > self.horizon:
                     done = True
 
                 # save state, action, reward sequence
                 memory.update(state, action, reward, done)
 
-            if memory.length()>self.batch_size and episode % 50 == 0:
+            if episode>=20 and episode % 10== 0:
                 for _ in range(50):
-                    self.train(memory)
-
+                    self.train(memory,optimizer)
                 # transfer new parameter from Q_1 to Q_2
-                self.update_parameters(self.Q_1, self.Q_2)
+                self.update_parameters()
 
             # update learning rate and eps
             warnings.filterwarnings("ignore")
-            self.scheduler.step()
+            scheduler.step()
             eps_decay=(1-self.min_eps)/self.max_episode
             eps = max(eps*eps_decay, self.min_eps)
     
@@ -152,15 +188,15 @@ class DDQN_agent(Agent):
         return super().plot_training(rewards, times)
     
     # Helper functions not required by the agent class
-    def update_parameters(self, current_model, target_model):
-        target_model.load_state_dict(current_model.state_dict())
+    def update_parameters(self):
+        self.Q_2.load_state_dict(self.Q_1.state_dict())
     
     def evaluate_MC(self):
         self.Q_1.eval()
         perform = 0
         repeats=100
+        tot_reward=0
         for _ in range(repeats):
-            tot_reward=0
             randAngle =  (np.random.rand()*2*self.rand_angle)-self.rand_angle
             state = self.env.reset(randAngle)
             done = False
@@ -171,12 +207,11 @@ class DDQN_agent(Agent):
                 action = np.argmax(values.numpy())
                 state, reward, done, info= self.env.step(action)
                 perform += reward
-                tot_reward+=info['time']
-                if tot_reward>self.horizon:
-                    done=True
-                
+                if info['time']>self.horizon:
+                    done=True    
+            tot_reward+=info['time']  
         self.Q_1.train()
-        if tot_reward/repeats> .95:
+        if tot_reward/repeats> .95*self.horizon:
             return True, tot_reward/repeats
         return False, tot_reward/repeats
 
@@ -194,8 +229,9 @@ class DDQN_agent(Agent):
         return action
     
   
-    def train(self, memory):
-
+    def train(self, memory, optimizer):
+        #batch_size, current, target, optim, memory, gamma
+        #batch_size, Q_1, Q_2, optimizer, memory, gamma
         states, actions, next_states, rewards, is_done = memory.sample(self.batch_size)
 
         q_values = self.Q_1(states)
@@ -208,6 +244,6 @@ class DDQN_agent(Agent):
         expected_q_value = rewards + self.gamma * next_q_value * (1 - is_done)
 
         loss = (q_value - expected_q_value.detach()).pow(2).mean()
-        self.optimizer.zero_grad()
+        optimizer.zero_grad()
         loss.backward()
-        self.optimizer.step()
+        optimizer.step()
