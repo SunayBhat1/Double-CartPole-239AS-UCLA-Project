@@ -1,66 +1,53 @@
-import gym
-from carts_poles import CartsPolesEnv
-import pyglet
-import pymunk
-SCREEN_HEIGHT = 700
-PPM = 200.0
-window = pyglet.window.Window(1000, SCREEN_HEIGHT, vsync=False, caption='Inverted Pendulum Simulator')
+from DQN_agent import DQN_agent
+from DDQN_agent import DDQN_agent
+from AC_agent import AC_agent
+from AC_2agent import AC_2agent
+import numpy as np
 
-def draw_body(offset, body):
-    for shape in body.shapes:
-        if isinstance(shape, pymunk.Circle):
-            # TODO
-            pass
-        elif isinstance(shape, pymunk.Poly):
-            # get vertices in world coordinates
-            vertices = [v.rotated(body.angle) + body.position for v in shape.get_vertices()]
+directory = "ActorCritic/"
 
-            # convert vertices to pixel coordinates
-            points = []
-            for v in vertices:
-                points.append(int(v[0] * PPM) + offset[0])
-                points.append(int(v[1] * PPM) + offset[1])
+args = {
+        "gamma" : 0.99, # All
+        
+        "n_episode" : 10000, # All
 
-            data = ('v2i', tuple(points))
-            pyglet.graphics.draw(len(vertices), pyglet.gl.GL_LINE_LOOP, data)
+        "rand_angle" : .2, # All
 
+        "mean_window" : 100, # All
 
-def draw_ground(offset, ground):
-    vertices = [v + (0, ground.radius) for v in (ground.a, ground.b)]
+        "horizon" : 200, # All
 
-    # convert vertices to pixel coordinates
-    points = []
-    for v in vertices:
-        points.append(int(v[0] * PPM) + offset[0])
-        points.append(int(v[1] * PPM) + offset[1])
+        "test_angles" : np.linspace(np.pi/8,-np.pi/8,100), #ALL
 
-    data = ('v2i', tuple(points))
-    pyglet.graphics.draw(len(vertices), pyglet.gl.GL_LINES, data)
+        "batch_size" : 256*2, # DQN, DDQN
 
+        "hidden_dim" : 64, # DQN, DDQN
 
-@window.event
-def on_draw():
-    window.clear()
+        "capacity" : 50000, # DQN, DDQN
 
-    
-    offset = (500, 250)
-    draw_body(offset, env.cart1_body)
-    draw_body(offset, env.pend1_body)
-    draw_body(offset, env.cart2_body)
-    draw_body(offset, env.pend2_body)
-    draw_body(offset, env.pend3_body)  
-    draw_ground(offset, env.ground)
+        "max_episode" : 50, # DQN, DDQN
 
-if __name__ == "__main__":
+        "min_eps" : 0.01, # DQN, DDQN
 
-    global env 
-    env = CartsPolesEnv()
-    pyglet.clock.schedule_interval(env.step, 0.2, action=(1,1))
-    pyglet.app.run()
-    #for _ in range(120):
-    #    env.step(1)
-    #env.reset()
+        "num_saved_episode" : 3, # ????
 
+        "Load_DQN" : False, # DQN, DDQN
 
+        'ac_hidden1_dim' : 128, # AC
 
+        'ac_hidden2_dim': 256, # AC
 
+        'alpha': 0.0001 # AC
+    }
+
+# Agent=DQN_agent(args)
+# Agent.run_training("",100)
+# Agent.load("dqn.pkl")
+# Agent.evaluate(True)
+
+# Agent = AC_2agent(args,'full')
+# Agent.load(directory)
+# Agent.run_training(directory,100)
+# Agent.evaluate(directory,True)
+Agent=DDQN_agent(args)
+Agent.run_training("",100)
