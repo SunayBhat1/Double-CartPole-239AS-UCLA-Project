@@ -85,7 +85,7 @@ class AC_agent(Agent):
 
         print('Model loaded from {}'.format(dirname))
 
-    def plot_training(self,dirname) -> None:
+    def plot_training(self,dirname):
         fig, (ax1, ax2) = plt.subplots(1, 2,figsize=(10,4.5), dpi= 120, facecolor='w', edgecolor='k')
         fig.suptitle('Training Performance\n\n',fontweight='bold',fontsize = 14)
 
@@ -212,7 +212,7 @@ class AC_agent(Agent):
 
         self.rewards_history = rewards
         self.save(dirname)
-        self.plot_training(dirname)
+        self.plot_training(dirname,rewards)
         self.plot_compTime(comp_times,dirname)
         env.close()
         print('Done Training {} episodes!'.format(self.n))
@@ -250,33 +250,35 @@ class AC_agent(Agent):
 
         if plot: 
             fig, ax0 = plt.subplots(figsize=(6,4), dpi= 130, facecolor='w', edgecolor='k')
-            ax0.plot(self.test_angles,tot_rewards,c='g')
+            ax0.plot(self.test_angles * 180/np.pi,tot_rewards,c='g')
             ax0.set_title("Start Angle vs Episode Length",fontweight='bold',fontsize = 15)
             ax0.set_ylabel("Episode Length (Seconds)",fontweight='bold',fontsize = 12)
-            ax0.set_xlabel("Start Angle (Radians)",fontweight='bold',fontsize = 12)
+            ax0.set_xlabel("Start Angle (Degrees)",fontweight='bold',fontsize = 12)
             ax0.grid()
             fig.savefig(dirname + 'Plots/Results_' + time.strftime("%Y%m%d-%H%M%S") + '.png')
             plt.show()
 
         return np.mean(tot_rewards)
 
-    def render_run(self) -> None:
+    def render_run(self,iters = 1) -> None:
 
         env = CartsPolesEnv()
-        angle = (np.random.rand()*2*self.rand_angle)-self.rand_angle
-        s = env.reset(angle)
 
-        done = False
+        for iEp in range(iters):
+            angle = (np.random.rand()*2*self.rand_angle)-self.rand_angle
+            s = env.reset(angle)
 
-        while not done:
-            env.render()
-            state = torch.FloatTensor(s)
-            dist = self.actor(state)
-            a = dist.sample()
-            s, _, done, info = env.step(a)
+            done = False
 
-            
-        print('Start Angle {:.4f} Run Time: {:.2f}'.format(angle,info['time']))
+            while not done:
+                env.render()
+                state = torch.FloatTensor(s)
+                dist = self.actor(state)
+                a = dist.sample()
+                s, _, done, info = env.step(a)
+
+                
+        print('Final Start Angle {:.4f}, Final Run Time: {:.2f}'.format(angle,info['time']))
         env.close()
 
 

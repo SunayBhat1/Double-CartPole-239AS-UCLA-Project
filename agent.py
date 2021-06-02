@@ -43,14 +43,6 @@ class Agent(object, metaclass=ABCMeta):
         """
         raise NotImplementedError()
     
-    @abstractmethod
-    def plot_training(self,dirname:str) -> None:
-        """ 
-        Plot training history
-        """
-        raise NotImplementedError()
-        
-
 
 class Memory:
     def __init__(self, len):

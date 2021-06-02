@@ -178,15 +178,12 @@ class AC_2agent(Agent):
             done = False
 
             while not done:
-                # env.render()
-
                 state1 = torch.FloatTensor(state1)
                 state2 = torch.FloatTensor(state2)
                 dist1, dist2, value1, value2 = self.actor1(state1), self.actor2(state2), self.critic1(state1), self.critic2(state2)
 
                 action1 = dist1.sample()
                 action2 = dist2.sample()
-
 
                 next_state1, next_state2, reward, done, info = env.step(action1,action2)
 
@@ -311,7 +308,6 @@ class AC_2agent(Agent):
             fig.savefig(dirname + 'Plots/Results_' + time.strftime("%Y%m%d-%H%M%S") + '.png')
             plt.show()
 
-        
 
     def render_run(self,iters) -> None:
 
