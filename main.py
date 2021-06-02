@@ -50,4 +50,4 @@ args = {
 # Agent.run_training(directory,100)
 # Agent.evaluate(directory,True)
 Agent=DDQN_agent(args)
-Agent.run_training("",100)
+Agent.run_training("DDQN/",100)

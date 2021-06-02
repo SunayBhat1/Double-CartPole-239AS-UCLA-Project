@@ -44,7 +44,7 @@ class Memory:
         self.state.clear()
         self.action.clear()
         self.is_done.clear()
-        
+
 class QNetwork(nn.Module):
     def __init__(self, action_dim, state_dim, hidden_dim):
         super(QNetwork, self).__init__()
@@ -82,23 +82,23 @@ class DDQN_agent(Agent):
         self.Q_2 = QNetwork(action_dim=self.env.action_space.n, state_dim=self.env.observation_space.shape[0],
                                         hidden_dim=self.hidden_dim)
 
-    def load(self, dirname: str) -> None:
-        model=torch.load(dirname)
+    def load(self, dirname: str, file_ext:str="DDQN_Q1.pt") -> None:
+        model=torch.load(dirname+file_ext)
         self.Q_1.load_state_dict(model)
-        self.update_parameters(self.Q_1, self.Q_2)
+        self.update_parameters()
         for param in self.Q_2.parameters():
             param.requires_grad = False
 
     def save(self, dirname: str) -> None:
-        torch.save(self.Q_1.state_dict(), dirname)
+        torch.save(self.Q_1.state_dict(), dirname+"DDQN_Q1.pt")
+        torch.save(self.Q_1.state_dict(), dirname + 'Archive/DDQN_Q1' + time.strftime("%Y%m%d-%H%M%S") + '.pt')
     
-    def evaluate(self, dirname: str, plot: bool) -> None:
-        env = CartsPolesEnv()
+    def evaluate(self, dirname: str, plot: bool) -> float:
 
         tot_rewards = np.zeros(np.shape(self.test_angles)[0])
 
-        for i,iAngle in enumerate(tqdm(self.test_angles)):
-            s = env.reset(iAngle)
+        for i,iAngle in enumerate(self.test_angles):
+            s = self.env.reset(iAngle)
             done = False
             ep_rewards = 0
             prev = 0
@@ -107,7 +107,7 @@ class DDQN_agent(Agent):
 
             while (duration <= self.horizon):
                 a=self.select_action(s,0)
-                s2, r, done, info = env.step(a)
+                s2, r, done, info = self.env.step(a)
 
                 duration = info['time']
 
@@ -118,7 +118,6 @@ class DDQN_agent(Agent):
                 s = s2
 
             tot_rewards[i] = duration
-            env.close()
         if plot: 
             fig, ax0 = plt.subplots(figsize=(6,3.5), dpi= 130, facecolor='w', edgecolor='k')
             ax0.plot(self.test_angles,tot_rewards,c='g')
@@ -126,8 +125,9 @@ class DDQN_agent(Agent):
             ax0.set_ylabel("Episode Length (Seconds)",fontweight='bold',fontsize = 12)
             ax0.set_xlabel("Start Angle (Radians)",fontweight='bold',fontsize = 12)
             ax0.grid()
-            fig.savefig('Plots/' + '_Results_' + time.strftime("%Y%m%d-%H%M%S") + '.png')
+            fig.savefig(dirname+'Plots/Results' + time.strftime("%Y%m%d-%H%M%S") + '.png')
             plt.show()
+        return np.mean(tot_rewards)
     
     def run_training(self, dirname: str, print_log: int) -> None:
         self.update_parameters()
@@ -143,15 +143,15 @@ class DDQN_agent(Agent):
         stop = 0
         biggest = 0
         measure_step=100
-        update_step=50
         eps=1
         for episode in tqdm(range(self.n_episode)):
             stop+=1
             if (episode+1) % measure_step == 0:
-                performance.append([episode, self.evaluate_MC()[1]])
-                if performance[-1][1]>=self.horizon:
-                    print("Ended early!!!!")
-                    break
+                eval_result=self.evaluate(dirname, False)
+                performance.append([episode,eval_result ])
+                if eval_result>=biggest:
+                    self.save(dirname)
+
             if (episode+1) % print_log == 0:
                 tqdm.write('Episode: {}, Seconds: {:.4f}, Learning Rate: {:.4f}, epsilon: {:.4f}'.format(episode,  performance[-1][1], scheduler.get_lr()[0],eps))
 
@@ -191,29 +191,6 @@ class DDQN_agent(Agent):
     def update_parameters(self):
         self.Q_2.load_state_dict(self.Q_1.state_dict())
     
-    def evaluate_MC(self):
-        self.Q_1.eval()
-        perform = 0
-        repeats=100
-        tot_reward=0
-        for _ in range(repeats):
-            randAngle =  (np.random.rand()*2*self.rand_angle)-self.rand_angle
-            state = self.env.reset(randAngle)
-            done = False
-            while not done:
-                state = torch.Tensor(state)
-                with torch.no_grad():
-                    values = self.Q_1(state)
-                action = np.argmax(values.numpy())
-                state, reward, done, info= self.env.step(action)
-                perform += reward
-                if info['time']>self.horizon:
-                    done=True    
-            tot_reward+=info['time']  
-        self.Q_1.train()
-        if tot_reward/repeats> .95*self.horizon:
-            return True, tot_reward/repeats
-        return False, tot_reward/repeats
 
     def select_action(self, state, eps):
         state = torch.Tensor(state)
