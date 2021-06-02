@@ -60,11 +60,5 @@ Agent = AC_2agent(args,'full')
 Agent.load(directory,'')
 # Agent.run_training(directory,1000)
 # Agent.evaluate(directory,True)
-Agent.render_run(100)
-
-# Actor Critic 2-Agent Partial
-# directory = "ActorCritic_2Agent_Partial/"
-# Agent = AC_2agent(args,'partial')
-# # Agent.load(directory)
-# Agent.run_training(directory,1000)
-# Agent.evaluate(directory,True)
+Agent=DDQN_agent(args)
+Agent.run_training("DDQN/",100)
