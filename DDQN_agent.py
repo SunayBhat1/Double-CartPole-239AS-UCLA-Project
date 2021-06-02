@@ -141,6 +141,7 @@ class DDQN_agent(Agent):
 
         memory = Memory(self.capacity)
         performance = []
+        history=[]
         stop = 0
         biggest = 0
         measure_step=100
@@ -149,7 +150,7 @@ class DDQN_agent(Agent):
             stop+=1
             if (episode+1) % measure_step == 0:
                 eval_result=self.evaluate(dirname, False)
-                performance.append([episode,eval_result ])
+                performance.append([episode,eval_result])
                 if eval_result>=biggest:
                     self.save(dirname)
 
@@ -172,7 +173,7 @@ class DDQN_agent(Agent):
 
                 # save state, action, reward sequence
                 memory.update(state, action, reward, done)
-
+            history.append([info['time']])
             if episode>=20 and episode % 10== 0:
                 for _ in range(50):
                     self.train(memory,optimizer)
@@ -184,9 +185,25 @@ class DDQN_agent(Agent):
             scheduler.step()
             eps_decay=(1-self.min_eps)/self.max_episode
             eps = max(eps*eps_decay, self.min_eps)
-    
-    def plot_training(self, rewards, times) -> None:
-        return super().plot_training(rewards, times)
+        # Plot training History
+        fig, (ax1, ax2) = plt.subplots(1, 2,figsize=(10,4.5), dpi= 120, facecolor='w', edgecolor='k')
+        fig.suptitle('Training Performance\n\n',fontweight='bold',fontsize = 14)
+
+        ax1.plot(range(0,len(history)),history)
+        ax1.set_title("Rewards vs Episode",fontweight='bold',fontsize = 11)
+        ax1.set_xlabel('Episode',fontweight='bold',fontsize = 8)
+        ax1.set_ylabel('Episode Rewards',fontweight='bold',fontsize = 8)
+        ax1.grid()
+        
+        ax2.plot([x[0] for x in performance],[x[1] for x in performance])
+        ax2.set_title("{} Performance vs Episode".format(self.mean_window),fontweight='bold',fontsize = 11)
+        ax2.set_xlabel('Episode',fontweight='bold',fontsize = 8)
+        ax2.set_ylabel('Mean 100 Rewards',fontweight='bold',fontsize = 8)
+        ax2.grid()
+
+        fig.savefig(dirname + 'Plots/Training_' + time.strftime("%Y%m%d-%H%M%S") + '.png')
+        plt.pause(0.001)
+        
     
     # Helper functions not required by the agent class
     def update_parameters(self):
@@ -225,3 +242,6 @@ class DDQN_agent(Agent):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+
+    def render_run(self, iters: int) -> None:
+        return super().render_run(iters)
