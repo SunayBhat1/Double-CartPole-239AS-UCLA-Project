@@ -69,18 +69,18 @@ class AC_agent(Agent):
         self.rewards_history = []
 
     def save(self, dirname: str) -> None:
-        torch.save(self.actor.state_dict(), dirname + 'actor.pkl')
-        torch.save(self.critic.state_dict(), dirname + 'critic.pkl')
+        torch.save(self.actor.state_dict(), dirname + 'actor.pt')
+        torch.save(self.critic.state_dict(), dirname + 'critic.pt')
         torch.save(self.rewards_history, dirname + 'reward_history.pkl')
-        torch.save(self.actor.state_dict(), dirname + 'Archive/actor_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
-        torch.save(self.critic.state_dict(), dirname + 'Archive/critic_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
+        torch.save(self.actor.state_dict(), dirname + 'Archive/actor_' + time.strftime("%Y%m%d-%H%M%S") + '.pt')
+        torch.save(self.critic.state_dict(), dirname + 'Archive/critic_' + time.strftime("%Y%m%d-%H%M%S") + '.pt')
         torch.save(self.rewards_history, dirname + 'Archive/reward_history_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
 
         print('Model saved to {}'.format(dirname))
     
     def load(self, dirname: str, file_ext: str) -> None:
-        a_model = torch.load(dirname + 'actor.pkl')
-        c_model = torch.load(dirname + 'critic.pkl')
+        a_model = torch.load(dirname + 'actor.pt')
+        c_model = torch.load(dirname + 'critic.pt')
         self.actor.load_state_dict(a_model)
         self.critic.load_state_dict(c_model)
         self.rewards_history = torch.load(dirname + 'reward_history.pkl')
@@ -262,12 +262,12 @@ class AC_agent(Agent):
 
         return np.mean(tot_rewards)
 
-    def render_run(self,dirname,save_video = False,iters = 1) -> None:
+    def render_run(self,dirname,save_video = False,speed=1,iters = 1,) -> None:
 
         env = CartsPolesEnv()
 
         for iEp in range(iters):
-            if save_video: video_out = cv2.VideoWriter(dirname + 'Videos/Run_{}.mp4'.format(iEp), cv2.VideoWriter_fourcc(*'mp4v'), 100, (2000,1400))
+            if save_video: video_out = cv2.VideoWriter(dirname + 'Videos/Run_{}_{}xSpeed.mp4'.format(iEp,speed), cv2.VideoWriter_fourcc(*'mp4v'), 100*speed, (2000,1400))
             angle = (np.random.rand()*2*self.rand_angle)-self.rand_angle
             s = env.reset()
 
