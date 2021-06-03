@@ -1,9 +1,11 @@
 from agent import Agent
+import gym
 import numpy as np
 from carts_poles import CartsPolesEnv
 import matplotlib.pyplot as plt
 import time
 from tqdm import tqdm
+import cv2
 
 import torch
 import torch.nn as nn
@@ -212,7 +214,7 @@ class AC_agent(Agent):
 
         self.rewards_history = rewards
         self.save(dirname)
-        self.plot_training(dirname,rewards)
+        self.plot_training(dirname)
         self.plot_compTime(comp_times,dirname)
         env.close()
         print('Done Training {} episodes!'.format(self.n))
@@ -260,25 +262,32 @@ class AC_agent(Agent):
 
         return np.mean(tot_rewards)
 
-    def render_run(self,iters = 1) -> None:
+    def render_run(self,dirname,save_video = False,iters = 1) -> None:
 
         env = CartsPolesEnv()
 
         for iEp in range(iters):
+            if save_video: video_out = cv2.VideoWriter(dirname + 'Videos/Run_{}.mp4'.format(iEp), cv2.VideoWriter_fourcc(*'mp4v'), 100, (2000,1400))
             angle = (np.random.rand()*2*self.rand_angle)-self.rand_angle
-            s = env.reset(angle)
+            s = env.reset()
 
             done = False
 
             while not done:
-                env.render()
+                if save_video: 
+                    img = env.render('rgb_array')
+                    video_out.write(img)
+                else: env.render()
+                
                 state = torch.FloatTensor(s)
                 dist = self.actor(state)
                 a = dist.sample()
                 s, _, done, info = env.step(a)
 
-                
+            if save_video: video_out.release()
+   
         print('Final Start Angle {:.4f}, Final Run Time: {:.2f}'.format(angle,info['time']))
+        if save_video: print('Video saved to "' + dirname + 'Videos/"...')
         env.close()
 
 

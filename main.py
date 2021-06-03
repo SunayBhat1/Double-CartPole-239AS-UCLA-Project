@@ -6,7 +6,7 @@ import numpy as np
 
 
 args = {
-        "n_episode" : 2000, # All
+        "n_episode" : 100, # All
         # Default 0.99
         "gamma" : 0.99, # All
         # Default 0.2
@@ -43,27 +43,20 @@ args = {
 # Agent.evaluate(True)
 
 # Actor Critic Agent
-# directory = "ActorCritic/"
-# Agent=AC_agent(args)
-# Agent.load(directory,'')
-# # Agent.run_training(directory,500)
-# # Agent.evaluate(directory,True)
-# Agent.render_run(1)
+directory = "ActorCritic/"
+Agent=AC_agent(args)
+Agent.load(directory,'')
+# Agent.run_training(directory,500)
+# Agent.evaluate(directory,True)
+Agent.render_run(directory,True)
 
 # Actor Critic 2-Agent Full
-directory = "ActorCritic_2Agent_Full/"
-Agent = AC_2agent(args,'full')
-<<<<<<< Updated upstream
-Agent.load(directory,'')
+# directory = "ActorCritic_2Agent_Full/"
+# Agent = AC_2agent(args,'full')
+# # Agent.load(directory,'')
 # Agent.run_training(directory,1000)
 # Agent.evaluate(directory,True)
-Agent=DDQN_agent(args)
-Agent.run_training("DDQN/",100)
-=======
-# Agent.load(directory,'')
-Agent.run_training(directory,1000)
-Agent.evaluate(directory,True)
-Agent.render_run(2)
+# Agent.render_run(2)
 
 # Actor Critic 2-Agent Partial
 # directory = "ActorCritic_2Agent_Partial/"
@@ -71,4 +64,3 @@ Agent.render_run(2)
 # # Agent.load(directory)
 # Agent.run_training(directory,1000)
 # Agent.evaluate(directory,True)
->>>>>>> Stashed changes

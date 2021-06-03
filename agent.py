@@ -37,7 +37,7 @@ class Agent(object, metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def render_run(self,iters: int) -> None:
+    def render_run(self, dirname:str, save_video: bool, iters: int) -> None:
         """ 
         Run a single episode with render (random angle)
         """
