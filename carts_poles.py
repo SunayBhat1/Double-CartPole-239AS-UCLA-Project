@@ -273,8 +273,7 @@ class CartsPolesEnv(gym.Env):
             pend3.add_attr(self.pendtrans3)
             self.viewer.add_geom(pend3)
 
-        if self.state is None:
-            return None
+        if self.state is None: return None
         
         self.groundtrans.set_translation(screen_width / 2.0,screen_height / 2.0)
         cur_state= self.state
@@ -302,6 +301,7 @@ class CartsPolesEnv(gym.Env):
         pend3x=(cur_state[10])*scale + screen_width / 2.0
         pend3y=(cur_state[11])*scale + screen_height / 2.0
         self.pendtrans3.set_translation(pend3x, pend3y)
+        
         return self.viewer.render(return_rgb_array=mode == 'rgb_array')
 
     def close(self):

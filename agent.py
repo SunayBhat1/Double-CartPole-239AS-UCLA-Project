@@ -37,20 +37,12 @@ class Agent(object, metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def render_run(self,iters: int) -> None:
+    def render_run(self, dirname:str, save_video: bool, iters: int) -> None:
         """ 
         Run a single episode with render (random angle)
         """
         raise NotImplementedError()
     
-    @abstractmethod
-    def plot_training(self,dirname:str) -> None:
-        """ 
-        Plot training history
-        """
-        raise NotImplementedError()
-        
-
 
 class Memory:
     def __init__(self, len):

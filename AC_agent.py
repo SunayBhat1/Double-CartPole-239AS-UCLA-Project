@@ -1,9 +1,11 @@
 from agent import Agent
+import gym
 import numpy as np
 from carts_poles import CartsPolesEnv
 import matplotlib.pyplot as plt
 import time
 from tqdm import tqdm
+import cv2
 
 import torch
 import torch.nn as nn
@@ -67,25 +69,25 @@ class AC_agent(Agent):
         self.rewards_history = []
 
     def save(self, dirname: str) -> None:
-        torch.save(self.actor.state_dict(), dirname + 'actor.pkl')
-        torch.save(self.critic.state_dict(), dirname + 'critic.pkl')
+        torch.save(self.actor.state_dict(), dirname + 'actor.pt')
+        torch.save(self.critic.state_dict(), dirname + 'critic.pt')
         torch.save(self.rewards_history, dirname + 'reward_history.pkl')
-        torch.save(self.actor.state_dict(), dirname + 'Archive/actor_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
-        torch.save(self.critic.state_dict(), dirname + 'Archive/critic_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
+        torch.save(self.actor.state_dict(), dirname + 'Archive/actor_' + time.strftime("%Y%m%d-%H%M%S") + '.pt')
+        torch.save(self.critic.state_dict(), dirname + 'Archive/critic_' + time.strftime("%Y%m%d-%H%M%S") + '.pt')
         torch.save(self.rewards_history, dirname + 'Archive/reward_history_' + time.strftime("%Y%m%d-%H%M%S") + '.pkl')
 
         print('Model saved to {}'.format(dirname))
     
     def load(self, dirname: str, file_ext: str) -> None:
-        a_model = torch.load(dirname + 'actor.pkl')
-        c_model = torch.load(dirname + 'critic.pkl')
+        a_model = torch.load(dirname + 'actor.pt')
+        c_model = torch.load(dirname + 'critic.pt')
         self.actor.load_state_dict(a_model)
         self.critic.load_state_dict(c_model)
         self.rewards_history = torch.load(dirname + 'reward_history.pkl')
 
         print('Model loaded from {}'.format(dirname))
 
-    def plot_training(self,dirname) -> None:
+    def plot_training(self,dirname):
         fig, (ax1, ax2) = plt.subplots(1, 2,figsize=(10,4.5), dpi= 120, facecolor='w', edgecolor='k')
         fig.suptitle('Training Performance\n\n',fontweight='bold',fontsize = 14)
 
@@ -250,33 +252,42 @@ class AC_agent(Agent):
 
         if plot: 
             fig, ax0 = plt.subplots(figsize=(6,4), dpi= 130, facecolor='w', edgecolor='k')
-            ax0.plot(self.test_angles,tot_rewards,c='g')
+            ax0.plot(self.test_angles * 180/np.pi,tot_rewards,c='g')
             ax0.set_title("Start Angle vs Episode Length",fontweight='bold',fontsize = 15)
             ax0.set_ylabel("Episode Length (Seconds)",fontweight='bold',fontsize = 12)
-            ax0.set_xlabel("Start Angle (Radians)",fontweight='bold',fontsize = 12)
+            ax0.set_xlabel("Start Angle (Degrees)",fontweight='bold',fontsize = 12)
             ax0.grid()
             fig.savefig(dirname + 'Plots/Results_' + time.strftime("%Y%m%d-%H%M%S") + '.png')
             plt.show()
 
         return np.mean(tot_rewards)
 
-    def render_run(self) -> None:
+    def render_run(self,dirname,save_video = False,speed=1,iters = 1,) -> None:
 
         env = CartsPolesEnv()
-        angle = (np.random.rand()*2*self.rand_angle)-self.rand_angle
-        s = env.reset(angle)
 
-        done = False
+        for iEp in range(iters):
+            if save_video: video_out = cv2.VideoWriter(dirname + 'Videos/Run_{}_{}xSpeed.mp4'.format(iEp,speed), cv2.VideoWriter_fourcc(*'mp4v'), 100*speed, (2000,1400))
+            angle = (np.random.rand()*2*self.rand_angle)-self.rand_angle
+            s = env.reset()
 
-        while not done:
-            env.render()
-            state = torch.FloatTensor(s)
-            dist = self.actor(state)
-            a = dist.sample()
-            s, _, done, info = env.step(a)
+            done = False
 
-            
-        print('Start Angle {:.4f} Run Time: {:.2f}'.format(angle,info['time']))
+            while not done:
+                if save_video: 
+                    img = env.render('rgb_array')
+                    video_out.write(img)
+                else: env.render()
+                
+                state = torch.FloatTensor(s)
+                dist = self.actor(state)
+                a = dist.sample()
+                s, _, done, info = env.step(a)
+
+            if save_video: video_out.release()
+   
+        print('Final Start Angle {:.4f}, Final Run Time: {:.2f}'.format(angle,info['time']))
+        if save_video: print('Video saved to "' + dirname + 'Videos/"...')
         env.close()
 
 

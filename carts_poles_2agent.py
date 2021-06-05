@@ -56,6 +56,8 @@ class CartsPoles2Env(gym.Env):
         self.seed()
         self.viewer = None
         self.state = None
+        self.state1 = None
+        self.state2 = None
 
         self.steps_beyond_done = None
 
@@ -182,10 +184,11 @@ class CartsPoles2Env(gym.Env):
         xp, yp = self.pend3_body.position[0], self.pend3_body.position[1]
 
         if self.infostate == 'full':
-            self.state1 = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
-            self.state2 = self.state1
-            
+            self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
+            self.state1 = self.state
+            self.state2 = self.state
         else:
+            self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
             self.state1 = (x1, x1_dot, t1, w1, tp, wp, xp, yp)
             self.state2 = (x2, x2_dot, t2, w2, tp, wp, xp, yp)
 
@@ -245,16 +248,15 @@ class CartsPoles2Env(gym.Env):
         xp, yp = self.pend3_body.position[0], self.pend3_body.position[1]
 
         if self.infostate == 'full':
-            self.state1 = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
-            self.state2 = self.state1
-        
+            self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
+            self.state1 = self.state
+            self.state2 = self.state
         else:
+            self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
             self.state1 = (x1, x1_dot, t1, w1, tp, wp, xp, yp)
             self.state2 = (x2, x2_dot, t2, w2, tp, wp, xp, yp)
         
         return np.array(self.state1), np.array(self.state2)
-
-            
 
     def render(self, mode="human"):
         
@@ -301,8 +303,7 @@ class CartsPoles2Env(gym.Env):
             pend3.add_attr(self.pendtrans3)
             self.viewer.add_geom(pend3)
 
-        if self.state is None:
-            return None
+        if self.state is None: return None
         
         self.groundtrans.set_translation(screen_width / 2.0,screen_height / 2.0)
         cur_state= self.state
