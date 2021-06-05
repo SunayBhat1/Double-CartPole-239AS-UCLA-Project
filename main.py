@@ -43,20 +43,20 @@ args = {
 # Agent.evaluate(True)
 
 # DDQN Agent
-directory = "DDQN/"
-Agent=DDQN_agent(args)
+# directory = "DDQN/"
+# Agent=DDQN_agent(args)
 # Agent.run_training("",100)
-Agent.load(directory + 'DDQN_Q1.pt',file_ext='')
+# Agent.load(directory + 'DDQN_Q1.pt',file_ext='')
 # Agent.evaluate(directory,True)
-Agent.render_run(directory,save_video=True)
+# Agent.render_run(directory,save_video=False)
 
 # Actor Critic Agent
-# directory = "ActorCritic/"
-# Agent=AC_agent(args)
-# Agent.load(directory,'')
-# # Agent.run_training(directory,500)
-# # Agent.evaluate(directory,True)
-# Agent.render_run(directory,False,1)
+directory = "ActorCritic/"
+Agent=AC_agent(args)
+Agent.load(directory,'')
+# Agent.run_training(directory,500)
+# Agent.evaluate(directory,True)
+Agent.render_run(directory,True,1)
 
 # Actor Critic 2-Agent Full
 # directory = "ActorCritic_2Agent_Full/"

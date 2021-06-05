@@ -245,30 +245,30 @@ class DDQN_agent(Agent):
         loss.backward()
         optimizer.step()
 
-    def render_run(self, dirname = "DDQN/", save_video = False, speed=1,iters = 1,) -> None:
+    def render_run(self, dirname = "DDQN/", save_video = False, speed=1,iters = 1,fps=20) -> None:
 
         env = CartsPolesEnv()
 
         for iEp in range(iters):
-            if save_video: video_out = cv2.VideoWriter(dirname + 'Videos/Run_{}_{}xSpeed.mp4'.format(iEp,speed), cv2.VideoWriter_fourcc(*'mp4v'), 20*speed, (2000,1400))
-            #angle = (np.random.rand()*2*self.rand_angle)-self.rand_angle
-            angle = 0
+            if save_video: video_out = cv2.VideoWriter(dirname + 'Videos/Run_{}_{}xSpeed.mp4'.format(iEp,speed), cv2.VideoWriter_fourcc(*'mp4v'), fps*speed, (2000,1400))
+            angle = (np.random.rand()*2*self.rand_angle)-self.rand_angle
+            # angle = 0
             s = env.reset(angle)
 
             done = False
-            i = 1
+            iFrame = 1
             while not done:
-                if save_video and (i % 5 == 0): 
+                if save_video and (iFrame % (100/fps) == 0): 
                     img = env.render('rgb_array')
                     video_out.write(img)
                 else: env.render()
                 
                 a=self.select_action(s,-1)
                 s, _, done, info = env.step(a)
+                iFrame +=1
 
                 if(info["time"]>=200): done = True
-                if(info["time"] % 25 == 0): print('Time Elapsed = {:.4f} Seconds'.format(info["time"]))
-                i +=1
+                if(iFrame % 2500 == 0): print('Time Elapsed = {:.4f} Seconds'.format(info["time"]))
                     
             if save_video: video_out.release()
    
