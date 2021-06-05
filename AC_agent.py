@@ -210,6 +210,10 @@ class AC_agent(Agent):
 
             rewards.append(ep_reward)
             times.append(info['time'])
+            
+            if np.mean(times[-5:])>190:
+                tqdm.write('Episode: {} 5 Ep Avg Greater than 190! Breaking Training'.format(episode))
+                break
             if (episode % print_log == 0): tqdm.write('Episode: {}, Seconds: {:.4f}, Start Angle: {:.4f}'.format(episode, info['time'], angle))
 
         self.rewards_history = rewards
