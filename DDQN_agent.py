@@ -13,6 +13,8 @@ import warnings
 import torch.nn.functional as F
 import collections
 import time
+import cv2
+
 class Memory:
     def __init__(self, len):
         self.rewards = collections.deque(maxlen=len)
@@ -83,7 +85,7 @@ class DDQN_agent(Agent):
         self.Q_2 = QNetwork(action_dim=self.env.action_space.n, state_dim=self.env.observation_space.shape[0],
                                         hidden_dim=self.hidden_dim)
 
-    def load(self, dirname: str, file_ext:str="DDQN_Q1.pt") -> None:
+    def load(self, dirname: str, file_ext:str="DDQN_Q1_working.pt") -> None:
         model=torch.load(dirname+file_ext)
         self.Q_1.load_state_dict(model)
         self.update_parameters()
@@ -153,7 +155,7 @@ class DDQN_agent(Agent):
                 performance.append([episode,eval_result])
                 if eval_result>=biggest:
                     self.save(dirname)
-
+                    biggest = eval_result
             if (episode+1) % print_log == 0:
                 tqdm.write('Episode: {}, Seconds: {:.4f}, Learning Rate: {:.4f}, epsilon: {:.4f}'.format(episode,  performance[-1][1], scheduler.get_lr()[0],eps))
 
@@ -243,5 +245,33 @@ class DDQN_agent(Agent):
         loss.backward()
         optimizer.step()
 
-    def render_run(self, iters: int) -> None:
-        return super().render_run(iters)
+    def render_run(self, dirname = "DDQN/", save_video = False, speed=1,iters = 1,) -> None:
+
+        env = CartsPolesEnv()
+
+        for iEp in range(iters):
+            if save_video: video_out = cv2.VideoWriter(dirname + 'Videos/Run_{}_{}xSpeed.mp4'.format(iEp,speed), cv2.VideoWriter_fourcc(*'mp4v'), 100*speed, (2000,1400))
+            #angle = (np.random.rand()*2*self.rand_angle)-self.rand_angle
+            angle = 0
+            s = env.reset(angle)
+
+            done = False
+
+            while not done:
+                if save_video: 
+                    img = env.render('rgb_array')
+                    video_out.write(img)
+                else: env.render()
+                
+                a=self.select_action(s,-1)
+                s2, r, done, info = self.env.step(a)
+                s = s2
+                print(info["time"])
+                if(info["time"]>=200):
+                    done = True
+                    
+            if save_video: video_out.release()
+   
+        print('Final Start Angle {:.4f}, Final Run Time: {:.2f}'.format(angle,info['time']))
+        if save_video: print('Video saved to "' + dirname + 'Videos/"...')
+        env.close()
