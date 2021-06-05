@@ -1,5 +1,5 @@
 # from DQN_agent import DQN_agent
-# from DDQN_agent import DDQN_agent
+from DDQN_agent import DDQN_agent
 from AC_agent import AC_agent
 from AC_2agent import AC_2agent
 import numpy as np
@@ -42,6 +42,14 @@ args = {
 # Agent.load("dqn.pkl")
 # Agent.evaluate(True)
 
+# DDQN Agent
+directory = "DDQN/"
+Agent=DDQN_agent(args)
+# Agent.run_training("",100)
+Agent.load(directory + 'DDQN_Q1.pt',file_ext='')
+# Agent.evaluate(directory,True)
+Agent.render_run(directory,save_video=True)
+
 # Actor Critic Agent
 # directory = "ActorCritic/"
 # Agent=AC_agent(args)
@@ -51,12 +59,12 @@ args = {
 # Agent.render_run(directory,False,1)
 
 # Actor Critic 2-Agent Full
-directory = "ActorCritic_2Agent_Full/"
-Agent = AC_2agent(args,'full')
-Agent.load(directory,'')
+# directory = "ActorCritic_2Agent_Full/"
+# Agent = AC_2agent(args,'full')
+# Agent.load(directory,'')
 # Agent.run_training(directory,1000)
 # Agent.evaluate(directory,True)
-Agent.render_run(10)
+# Agent.render_run(10)
 
 # Actor Critic 2-Agent Partial
 # directory = "ActorCritic_2Agent_Partial/"

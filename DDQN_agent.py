@@ -96,11 +96,11 @@ class DDQN_agent(Agent):
         torch.save(self.Q_1.state_dict(), dirname+"DDQN_Q1.pt")
         torch.save(self.Q_1.state_dict(), dirname + 'Archive/DDQN_Q1' + time.strftime("%Y%m%d-%H%M%S") + '.pt')
     
-    def evaluate(self, dirname: str, plot: bool) -> float:
+    def evaluate(self, dirname: str, plot: bool=True) -> float:
 
         tot_rewards = np.zeros(np.shape(self.test_angles)[0])
 
-        for i,iAngle in enumerate(self.test_angles):
+        for i,iAngle in tqdm(enumerate(self.test_angles),ncols=100):
             s = self.env.reset(iAngle)
             done = False
             ep_rewards = 0
@@ -250,25 +250,25 @@ class DDQN_agent(Agent):
         env = CartsPolesEnv()
 
         for iEp in range(iters):
-            if save_video: video_out = cv2.VideoWriter(dirname + 'Videos/Run_{}_{}xSpeed.mp4'.format(iEp,speed), cv2.VideoWriter_fourcc(*'mp4v'), 100*speed, (2000,1400))
+            if save_video: video_out = cv2.VideoWriter(dirname + 'Videos/Run_{}_{}xSpeed.mp4'.format(iEp,speed), cv2.VideoWriter_fourcc(*'mp4v'), 20*speed, (2000,1400))
             #angle = (np.random.rand()*2*self.rand_angle)-self.rand_angle
             angle = 0
             s = env.reset(angle)
 
             done = False
-
+            i = 1
             while not done:
-                if save_video: 
+                if save_video and (i % 5 == 0): 
                     img = env.render('rgb_array')
                     video_out.write(img)
                 else: env.render()
                 
                 a=self.select_action(s,-1)
-                s2, r, done, info = self.env.step(a)
-                s = s2
-                print(info["time"])
-                if(info["time"]>=200):
-                    done = True
+                s, _, done, info = env.step(a)
+
+                if(info["time"]>=200): done = True
+                if(info["time"] % 25 == 0): print('Time Elapsed = {:.4f} Seconds'.format(info["time"]))
+                i +=1
                     
             if save_video: video_out.release()
    

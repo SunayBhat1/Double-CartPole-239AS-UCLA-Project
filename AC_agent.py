@@ -273,12 +273,12 @@ class AC_agent(Agent):
         for iEp in range(iters):
             if save_video: video_out = cv2.VideoWriter(dirname + 'Videos/Run_{}_{}xSpeed.mp4'.format(iEp,speed), cv2.VideoWriter_fourcc(*'mp4v'), 100*speed, (2000,1400))
             angle = (np.random.rand()*2*self.rand_angle)-self.rand_angle
-            s = env.reset()
+            s = env.reset(angle)
 
             done = False
-
+            i = 0
             while not done:
-                if save_video: 
+                if save_video and (i % 5 == 0): 
                     img = env.render('rgb_array')
                     video_out.write(img)
                 else: env.render()
@@ -287,6 +287,10 @@ class AC_agent(Agent):
                 dist = self.actor(state)
                 a = dist.sample()
                 s, _, done, info = env.step(a)
+                i += 1
+
+                if(info["time"]>=200): done = True
+                if(info["time"] % 25 == 0): print('Time Elapsed = {:.4f} Seconds'.format(info["time"]))
 
             if save_video: video_out.release()
    
