@@ -6,11 +6,11 @@ import numpy as np
 
 
 args = {
-        "n_episode" : 35000, # All
+        "n_episode" : 3000, # All
         # Default 0.99
         "gamma" : 0.9, # All
         # Default 0.2
-        "rand_angle" : 0.1, # All
+        "rand_angle" : 0.2, # All
         # Default: 100
         "mean_window" : 100, # All
         # Default: 200
@@ -51,18 +51,18 @@ args = {
 # Agent.render_run(directory,save_video=False)
 
 # Actor Critic Agent
-directory = "ActorCritic/"
-Agent=AC_agent(args)
-Agent.load(directory,'')
-# Agent.run_training(directory,500)
-# Agent.evaluate(directory,True)
-Agent.render_run(directory,True,1)
+# directory = "ActorCritic/"
+# Agent=AC_agent(args)
+# Agent.load(directory,'')
+# # Agent.run_training(directory,500)
+# # Agent.evaluate(directory,True)
+# Agent.render_run(directory,True,1)
 
 # Actor Critic 2-Agent Full
-# directory = "ActorCritic_2Agent_Full/"
-# Agent = AC_2agent(args,'full')
+directory = "ActorCritic_2Agent_Full/"
+Agent = AC_2agent(args,'full')
 # Agent.load(directory,'')
-# Agent.run_training(directory,1000)
+Agent.run_training(directory,100)
 # Agent.evaluate(directory,True)
 # Agent.render_run(10)
 

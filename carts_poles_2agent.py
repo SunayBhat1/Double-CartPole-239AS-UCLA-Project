@@ -211,7 +211,6 @@ class CartsPoles2Env(gym.Env):
         # action is the force to two carts, [f1, f2]
         # f1 can be either [1, -1 , 0]
 
-        # abs(np.cos(tp))
         if not done:
             reward = self.dt
             if self.time > 0.5:
@@ -226,14 +225,12 @@ class CartsPoles2Env(gym.Env):
                 reward *= 15
             elif self.time > 1.5:
                 reward *= 30
-
-            # Reward carts together
-            if abs(x1-x2) < 1.5: reward += self.dt * 5
-            if abs(x1-x2) < 1.3: reward += self.dt * 6
-            if abs(x1-x2) < 1.1: reward += self.dt * 7
-            if abs(x1-x2) < 0.5: reward += self.dt * 9
+            elif self.time > 4:
+                reward *= 100
 
             self.time=self.time+self.dt
+
+            # reward = 0
         else:
             reward = 0
 
