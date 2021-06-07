@@ -3,10 +3,11 @@ from DDQN_agent import DDQN_agent
 from AC_agent import AC_agent
 from AC_2agent import AC_2agent
 import numpy as np
-
+from urllib import request
+notify = True
 
 args = {
-        "n_episode" : 3000, # All
+        "n_episode" : 15000, # All
         # Default 0.99
         "gamma" : 0.9, # All
         # Default 0.2
@@ -51,20 +52,21 @@ args = {
 # Agent.render_run(directory,save_video=False)
 
 # Actor Critic Agent
-# directory = "ActorCritic/"
-# Agent=AC_agent(args)
-# Agent.load(directory,'')
-# # Agent.run_training(directory,500)
-# # Agent.evaluate(directory,True)
+directory = "ActorCritic/"
+Agent=AC_agent(args)
+Agent.load(directory,'')
+# Agent.run_training(directory,500)
+testResults = Agent.evaluate(directory,True)
 # Agent.render_run(directory,True,1)
 
+
 # Actor Critic 2-Agent Full
-directory = "ActorCritic_2Agent_Full/"
-Agent = AC_2agent(args,'full')
-# Agent.load(directory,'')
-Agent.run_training(directory,100)
-# Agent.evaluate(directory,True)
-# Agent.render_run(10)
+# directory = "ActorCritic_2Agent_Full/"
+# Agent = AC_2agent(args,'full')
+# # Agent.load(directory,'')
+# Agent.run_training(directory,100)
+# # Agent.evaluate(directory,True)
+# # Agent.render_run(10)
 
 # Actor Critic 2-Agent Partial
 # directory = "ActorCritic_2Agent_Partial/"
@@ -72,3 +74,9 @@ Agent.run_training(directory,100)
 # # Agent.load(directory)
 # Agent.run_training(directory,1000)
 # Agent.evaluate(directory,True)
+
+
+if notify:
+    key = "Lmdwc3Ei4h0vfiIwLA4K0"
+    message = 'Python_Script_Is_Done'
+    request.urlopen("https://maker.ifttt.com/trigger/notify/with/key/%s?value1=%s" % (key,message))

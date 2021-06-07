@@ -181,7 +181,7 @@ class AC_agent(Agent):
                 ep_reward += reward
 
                 if info['time'] > self.horizon:
-                    tqdm.write('Episode: {} Maxed out Time!'.format(episode))
+                    tqdm.write('Episode: {} Maxed out Train Time (200s)!'.format(episode))
                     self.rewards_history = rewards
                     self.save(dirname)
                     break
@@ -211,8 +211,8 @@ class AC_agent(Agent):
             rewards.append(ep_reward)
             times.append(info['time'])
             
-            if np.mean(times[-5:])>190:
-                tqdm.write('Episode: {} 5 Ep Avg Greater than 190! Breaking Training'.format(episode))
+            if np.mean(times[-100:])>195:
+                tqdm.write('Episode: {} 5 Ep Avg Greater than 400! Breaking Training'.format(episode))
                 break
             if (episode % print_log == 0): tqdm.write('Episode: {}, Seconds: {:.4f}, Start Angle: {:.4f}'.format(episode, info['time'], angle))
 
@@ -230,7 +230,7 @@ class AC_agent(Agent):
 
         env = CartsPolesEnv()
 
-        tot_rewards = np.zeros(np.shape(self.test_angles)[0])
+        tot_time = np.zeros(np.shape(self.test_angles)[0])
 
         for i,iAngle in enumerate(tqdm(self.test_angles,ncols=100)):
             s = env.reset(iAngle)
@@ -251,20 +251,23 @@ class AC_agent(Agent):
 
                 if done: break
 
-            tot_rewards[i] = duration
+            tot_time[i] = duration
             env.close()
 
         if plot: 
+            mask = abs(self.test_angles * 180/np.pi) < 12
+            masked_results = np.ma.array(tot_time,mask = ~mask)
+
             fig, ax0 = plt.subplots(figsize=(6,4), dpi= 130, facecolor='w', edgecolor='k')
-            ax0.plot(self.test_angles * 180/np.pi,tot_rewards,c='g')
-            ax0.set_title("Start Angle vs Episode Length",fontweight='bold',fontsize = 15)
+            ax0.plot(self.test_angles * 180/np.pi,tot_time,c='g')
+            ax0.set_title("Start Angle vs Episode Length\nMean (-12 to 12 Degrees): {:.2f}".format(masked_results.mean()),fontweight='bold',fontsize = 14)
             ax0.set_ylabel("Episode Length (Seconds)",fontweight='bold',fontsize = 12)
             ax0.set_xlabel("Start Angle (Degrees)",fontweight='bold',fontsize = 12)
             ax0.grid()
             fig.savefig(dirname + 'Plots/Results_' + time.strftime("%Y%m%d-%H%M%S") + '.png')
-            plt.show()
+            # plt.show()
 
-        return np.mean(tot_rewards)
+        return tot_time
 
     def render_run(self,dirname,save_video = False,speed=1,iters = 1,fps=20) -> None:
 
