@@ -66,6 +66,7 @@ class DistributionalDuelingHead(nn.Module):
 
 class Rainbow_agent(Agent):
     def __init__(self, args):
+        print(args)
         self.env = CartsPolesEnv()
         self.train_seed = args['seed']
         self.n_step_return = args['n_step_return']
@@ -170,7 +171,7 @@ class Rainbow_agent(Agent):
 
                 print('[Evaluate] episode:', i, 'R:', R)
                 
-            
+            np.save(dirname + 'evaluate.npy', tot_rewards) 
             if plot: 
                 fig, ax0 = plt.subplots(figsize=(6,3.5), dpi= 130, facecolor='w', edgecolor='k')
                 ax0.plot(self.test_angles, tot_rewards, c='g')
@@ -178,7 +179,7 @@ class Rainbow_agent(Agent):
                 ax0.set_ylabel("Episode Length (Seconds)",fontweight='bold',fontsize = 12)
                 ax0.set_xlabel("Start Angle (Radians)",fontweight='bold',fontsize = 12)
                 ax0.grid()
-                fig.savefig('Plots/' + '_Results_' + time.strftime("%Y%m%d-%H%M%S") + '.png')
+                fig.savefig(dirname + '_Results_' + time.strftime("%Y%m%d-%H%M%S") + '.png')
                 plt.show()
  
     def evaluate_MC(self) -> bool:
@@ -221,7 +222,7 @@ class Rainbow_agent(Agent):
             
 
     def run_training(self, dirname: str, print_log: int):
-        self.best_performance = 0
+        best_performance = 0
         return_list = []
 
         for i in range(1, self.n_episodes + 1): 
@@ -243,19 +244,27 @@ class Rainbow_agent(Agent):
                     return_list.append(R)
                     break
             
-            if i % 100 == 0 and print_log:
-                print('episode:', i, 'R:', R)
+
+            print('episode:', i, 'R:', R)
+            #if i % 100 == 0 and print_log:
+            #    print('episode:', i, 'R:', R)
 
             if i % 100 == 0:
-                if_save = self.evaluate_MC()
-                if if_save:
+            #    if_save = self.evaluate_MC()
+            #    if if_save:
+                
+                #self.save(dirname)
+                return_save = np.array(return_list)
+                if return_save[-100:].mean()>best_performance:
+                    best_performance = return_save[-100:].mean()
                     self.save(dirname)
-
+                
+                np.save(dirname + "training_log_ep_{}.npy".format(i), return_save)
+            
             if i % 30 == 0 and print_log:
                 print('statistics:', self.agent.get_statistics())
         
         print('Finished.')
-
 
     def save(self, dirname: str) -> None:
         self.agent.save(dirname)

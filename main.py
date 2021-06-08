@@ -1,17 +1,18 @@
-from DQN_agent import DQN_agent
+#from DQN_agent import DQN_agent
 from DDQN_agent import DDQN_agent
-from AC_agent import AC_agent
-from AC_2agent import AC_2agent
+from Rainbow_agent import Rainbow_agent
+#from AC_agent import AC_agent
+#from AC_2agent import AC_2agent
 import numpy as np
 
-directory = "ActorCritic/"
+directory = "./Rainbow/"
 
 args = {
         "gamma" : 0.99, # All
         
-        "n_episode" : 10000, # All
+        "n_episode" : 3000, # All
 
-        "rand_angle" : .2, # All
+        "rand_angle" : 0.2, # All
 
         "mean_window" : 100, # All
 
@@ -25,7 +26,7 @@ args = {
 
         "capacity" : 50000, # DQN, DDQN
 
-        "max_episode" : 50, # DQN, DDQN
+        "max_episode" : 200, # DQN, DDQN, rainbow
 
         "min_eps" : 0.01, # DQN, DDQN
 
@@ -37,7 +38,19 @@ args = {
 
         'ac_hidden2_dim': 256, # AC
 
-        'alpha': 0.0001 # AC
+        'alpha': 0.0001, # AC
+    
+        'seed': 100,
+
+        'gpu': 0,
+
+        'replay_start_size': 1600,
+
+        'load_path': './Rainbow',
+
+        'n_step_return': 3,
+        
+        'steps': 2 * 10 ** 6
     }
 
 # Agent=DQN_agent(args)
@@ -49,5 +62,9 @@ args = {
 # Agent.load(directory)
 # Agent.run_training(directory,100)
 # Agent.evaluate(directory,True)
-Agent=DDQN_agent(args)
-Agent.run_training("",100)
+
+#Agent=DDQN_agent(args)
+#Agent.run_training("",3000)
+Agent = Rainbow_agent(args)
+#Agent.run_training(directory, True)
+Agent.evaluate('./Plots/', True)
