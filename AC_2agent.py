@@ -4,6 +4,7 @@ from carts_poles_2agent import CartsPoles2Env
 import matplotlib.pyplot as plt
 import time
 from tqdm import tqdm
+from scipy.special import comb
 
 import torch
 import torch.nn as nn
@@ -12,34 +13,38 @@ from torch.distributions import Categorical
 import torch.optim as optim
 
 class Actor(nn.Module):
-    def __init__(self, input_dim, output_dim, hidden1_dim, hidden2_dim):
+    def __init__(self, input_dim, output_dim, hidden1_dim, hidden2_dim,hidden3_dim):
         super(Actor, self).__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.linear1 = nn.Linear(self.input_dim, hidden1_dim)
         self.linear2 = nn.Linear(hidden1_dim, hidden2_dim)
-        self.linear3 = nn.Linear(hidden2_dim, self.output_dim)
+        self.linear3 = nn.Linear(hidden2_dim, hidden3_dim)
+        self.linear4 = nn.Linear(hidden3_dim, self.output_dim)
 
     def forward(self, state):
         output = F.relu(self.linear1(state))
         output = F.relu(self.linear2(output))
-        output = self.linear3(output)
+        output = F.relu(self.linear3(output))
+        output = self.linear4(output)
         distribution = Categorical(F.softmax(output, dim=-1))
         return distribution
 
 class Critic(nn.Module):
-    def __init__(self, input_dim, output_dim, hidden1_dim, hidden2_dim):
+    def __init__(self, input_dim, output_dim, hidden1_dim, hidden2_dim,hidden3_dim):
         super(Critic, self).__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.linear1 = nn.Linear(self.input_dim, hidden1_dim)
         self.linear2 = nn.Linear(hidden1_dim, hidden2_dim)
-        self.linear3 = nn.Linear(hidden2_dim, 1)
+        self.linear3 = nn.Linear(hidden2_dim, hidden3_dim)
+        self.linear4 = nn.Linear(hidden3_dim, 1)
 
     def forward(self, state):
         output = F.relu(self.linear1(state))
         output = F.relu(self.linear2(output))
-        value = self.linear3(output)
+        output = F.relu(self.linear3(output))
+        value = self.linear4(output)
         return value
 
 class AC_2agent(Agent):
@@ -54,18 +59,20 @@ class AC_2agent(Agent):
         self.rand_angle = args['rand_angle']
         self.nn_hidden1_dim = args['ac_hidden1_dim']
         self.nn_hidden2_dim = args['ac_hidden2_dim']
+        self.nn_hidden3_dim = args['ac_hidden3_dim']
         self.mean_window = args['mean_window']
         self.horizon=args['horizon']
         self.test_angles = args['test_angles']
         self.infostate = infostate
 
         env = CartsPoles2Env(self.infostate)
-        self.input_dim = env.observation_space.shape[0]
+        dim_ospace = env.observation_space.shape[0]
+        self.input_dim = int(comb(dim_ospace,2)+dim_ospace)
         self.output_dim = env.action_space.n
-        self.actor1 = Actor(self.input_dim, self.output_dim,self.nn_hidden1_dim,self.nn_hidden2_dim)
-        self.actor2 = Actor(self.input_dim, self.output_dim,self.nn_hidden1_dim,self.nn_hidden2_dim)
-        self.critic1 = Critic(self.input_dim, self.output_dim,self.nn_hidden1_dim,self.nn_hidden2_dim)
-        self.critic2 = Critic(self.input_dim, self.output_dim,self.nn_hidden1_dim,self.nn_hidden2_dim)
+        self.actor1 = Actor(self.input_dim, self.output_dim,self.nn_hidden1_dim,self.nn_hidden2_dim,self.nn_hidden3_dim)
+        self.actor2 = Actor(self.input_dim, self.output_dim,self.nn_hidden1_dim,self.nn_hidden2_dim,self.nn_hidden3_dim)
+        self.critic1 = Critic(self.input_dim, self.output_dim,self.nn_hidden1_dim,self.nn_hidden2_dim,self.nn_hidden3_dim)
+        self.critic2 = Critic(self.input_dim, self.output_dim,self.nn_hidden1_dim,self.nn_hidden2_dim,self.nn_hidden3_dim)
 
         self.rewards_history = []
 
@@ -180,8 +187,12 @@ class AC_2agent(Agent):
             ep_reward = 0
 
             done = False
+
+            state1 = np.outer(state1, state1)[np.triu_indices(12)]
+            state2 = np.outer(state2, state2)[np.triu_indices(12)]
             
             while not done:
+                
                 state1 = torch.FloatTensor(state1)
                 state2 = torch.FloatTensor(state2)
                 dist1, dist2, value1, value2 = self.actor1(state1), self.actor2(state2), self.critic1(state1), self.critic2(state2)
@@ -191,8 +202,8 @@ class AC_2agent(Agent):
 
                 next_state1, next_state2, reward, done, info = env.step(action1,action2)
 
-                # next_state1 = np.append(next_state1,action2)
-                # next_state2 = np.append(next_state2,action1)
+                next_state1 = np.outer(next_state1, next_state1)[np.triu_indices(12)]
+                next_state2 = np.outer(next_state2, next_state2)[np.triu_indices(12)]
 
                 log_prob1 = dist1.log_prob(action1).unsqueeze(0)
                 entropy1 += dist1.entropy().mean()
@@ -205,8 +216,6 @@ class AC_2agent(Agent):
                 values1.append(value1)
                 values2.append(value2)
 
-                # print(value1,value2)
-
                 reward_train.append(torch.tensor([reward], dtype=torch.float))
                 masks.append(torch.tensor([1-done], dtype=torch.float))
 
@@ -214,10 +223,6 @@ class AC_2agent(Agent):
                 state2 = next_state2
 
                 gamma = self.gamma
-                # if reward > best_reward:
-                #     best_reward = reward
-                #     gamma = 1
-
 
                 ep_reward += reward
 
