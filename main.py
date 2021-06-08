@@ -6,7 +6,7 @@ from AC_2agent import AC_2agent
 import numpy as np
 import matplotlib.pyplot as plt
 from urllib import request
-notify = True
+notify = False
 
 args = {
         "n_episode" : 3000, # All
@@ -31,9 +31,9 @@ args = {
         # Default: 0.01
         "min_eps" : 0.01, # DQN, DDQN
         # Default: 128
-        'ac_hidden1_dim' : 512, # AC
+        'ac_hidden1_dim' : 128, # AC
         # Default: 256
-        'ac_hidden2_dim': 1024, # AC
+        'ac_hidden2_dim': 256, # AC
         # Default: 256
         'ac_hidden3_dim': 512, # AC
         # Default:  0.0001
@@ -59,6 +59,7 @@ args = {
 # # Agent.run_training("",100)
 # Agent.load('DQN/DQN_5_20_0010.pt')
 # vec_dqn = Agent.evaluate(True)
+# np.save('Results/DQN_evaluate.npy',vec_dqn)
 
 # args['hidden_dim'] = 64
 # # DDQN Agent
@@ -68,6 +69,7 @@ args = {
 # Agent.load(directory + 'DDQN_Q1.pt',file_ext='')
 # vec_ddqn = Agent.evaluate(directory,True)
 # # Agent.render_run(directory,save_video=False)
+# np.save('Results/DDQN_evaluate.npy',vec_ddqn)
 
 # # Actor Critic Agent
 # directory = "ActorCritic/"
@@ -76,27 +78,58 @@ args = {
 # # Agent.run_training(directory,500)
 # vec_ac = Agent.evaluate(directory,True)
 # # Agent.render_run(directory,True,1)
-
-# fig7, ax9 = plt.subplots(figsize=(6,3.5), dpi= 130, facecolor='w', edgecolor='k')
-# ax9.plot(args['test_angles']*180/np.pi,vec_ddqn,c='g')
-# ax9.plot(args['test_angles']*180/np.pi,vec_ac,c='b')
-# ax9.plot(args['test_angles']*180/np.pi,vec_dqn,c='r')
-# ax9.set_title('Start Angle vs Episode Length',fontweight='bold',fontsize = 14)
-# ax9.set_ylabel("Episode Length (Seconds)",fontweight='bold',fontsize = 12)
-# ax9.set_xlabel("Start A ngle (Degrees)",fontweight='bold',fontsize = 12)
-# ax9.legend(['DDQN','AC','DQN'])
-# ax9.grid()
-# fig7.savefig('Results_All.png')
-# plt.show()
+# np.save('Results/AC_evaluate.npy',vec_ac)
 
 
-# Actor Critic 2-Agent Full
-directory = "ActorCritic_2Agent_Full/"
-Agent = AC_2agent(args,'full')
-# Agent.load(directory,'')
-Agent.run_training(directory,100)
-# Agent.evaluate(directory,True)
-# Agent.render_run(10)
+# Load Evals
+vec_rain = np.load('Results/Rainbow_evaluate.npy')
+vec_rain[vec_rain > 200]=200
+vec_ac = np.load('Results/AC_evaluate.npy')
+vec_ddqn = np.load('Results/DDQN_evaluate.npy')
+vec_dqn = np.load('Results/DQN_evaluate.npy')
+
+# Plot Results
+fig7, ((ax1,ax2),(ax3,ax4)) = plt.subplots(2,2,figsize=(6,3.5), dpi= 130, facecolor='w', edgecolor='k')
+fig7.suptitle('Start Angle vs Episode Length',fontweight='bold',fontsize = 14)
+ax1.plot(args['test_angles']*180/np.pi,vec_dqn,c='g')
+ax2.plot(args['test_angles']*180/np.pi,vec_ac,c='b')
+ax3.plot(args['test_angles']*180/np.pi,vec_ddqn,c='r')
+ax4.plot(args['test_angles']*180/np.pi,vec_rain,c='k')
+ax1.set_ylabel("Seconds",fontweight='bold',fontsize = 10)
+ax1.set_xlabel("Degrees",fontweight='bold',fontsize = 10)
+ax2.set_ylabel("Seconds",fontweight='bold',fontsize = 10)
+ax2.set_xlabel("Degrees",fontweight='bold',fontsize = 10)
+ax3.set_ylabel("Seconds",fontweight='bold',fontsize = 10)
+ax3.set_xlabel("Degrees",fontweight='bold',fontsize = 10)
+ax4.set_ylabel("Seconds",fontweight='bold',fontsize = 10)
+ax4.set_xlabel("Degrees",fontweight='bold',fontsize = 10)
+ax1.legend(['DQN'])
+ax2.legend(['AC'])
+ax3.legend(['DDQN'])
+ax4.legend(['Rainbow'])
+fig7.savefig('Results_All.png')
+
+mask = abs(args['test_angles'] * 180/np.pi) < 12
+masked_results_rain = np.ma.array(vec_rain,mask = ~mask)
+masked_results_ac = np.ma.array(vec_ac,mask = ~mask)
+masked_results_ddqn = np.ma.array(vec_ddqn,mask = ~mask)
+masked_results_dqn = np.ma.array(vec_dqn,mask = ~mask)
+
+print('DQN: {}\nAC: {}\nDDQN: {}\nRain: {}'.format(masked_results_dqn.mean(),masked_results_ac.mean(),masked_results_ddqn.mean(),
+masked_results_rain.mean()))
+
+
+plt.show()
+
+
+
+# # Actor Critic 2-Agent Full
+# directory = "ActorCritic_2Agent_Full/"
+# Agent = AC_2agent(args,'full')
+# # Agent.load(directory,'')
+# Agent.run_training(directory,100)
+# # Agent.evaluate(directory,True)
+# # Agent.render_run(10)
 
 # Actor Critic 2-Agent Partial
 # directory = "ActorCritic_2Agent_Partial/"

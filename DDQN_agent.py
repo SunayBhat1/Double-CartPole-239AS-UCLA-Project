@@ -104,7 +104,6 @@ class DDQN_agent(Agent):
             s = self.env.reset(iAngle)
             done = False
             ep_rewards = 0
-            prev = 0
 
             duration = 0
 
