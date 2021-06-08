@@ -67,9 +67,9 @@ class DistributionalDuelingHead(nn.Module):
 class Rainbow_agent(Agent):
     def __init__(self, args):
         self.env = CartsPolesEnv()
-        self.train_seed = args['seed']
+        # self.train_seed = args['seed']
         self.n_step_return = args['n_step_return']
-        self.gpu = args['gpu']
+        # self.gpu = args['gpu']
         self.gamma = args['gamma']
         self.replay_start_size = args['replay_start_size']
         self.load_path = args['load_path']
@@ -117,7 +117,7 @@ class Rainbow_agent(Agent):
             self.q_func,
             self.opt,
             self.rbuf,
-            gpu=self.gpu,
+            # gpu=self.gpu,
             gamma=self.gamma,
             explorer=self.explorer,
             minibatch_size=32,
@@ -137,6 +137,8 @@ class Rainbow_agent(Agent):
         
         utils.set_random_seed(args['seed'])
 
+    def render_run(self, dirname: str) -> None:
+        print('do Nothing')
 
     def _check_env(self, env):
         if isinstance(env.action_space, gym.spaces.MultiBinary):
@@ -146,7 +148,7 @@ class Rainbow_agent(Agent):
 
     def evaluate(self, dirname: str, plot: bool) -> None:
 
-        tot_rewards = np.zeros(np.shape(self.test_angles)[0])
+        tot_time = np.zeros(np.shape(self.test_angles)[0])
         print(self.agent) 
         with self.agent.eval_mode():
             for i, iAngle in enumerate(tqdm(self.test_angles)):
@@ -160,26 +162,31 @@ class Rainbow_agent(Agent):
                     obs, reward, done, info = self.env.step(action)
                     R += reward
                     t = info['time']
-                    reset = (t >= self.max_episode)
+                    reset = (t >= 200)
                     self.agent.observe(obs, reward, done, reset)
     
                     if done or reset:
                         break
                 
-                tot_rewards[i] = R
+                tot_time[i] = R
 
                 print('[Evaluate] episode:', i, 'R:', R)
                 
             
             if plot: 
-                fig, ax0 = plt.subplots(figsize=(6,3.5), dpi= 130, facecolor='w', edgecolor='k')
-                ax0.plot(self.test_angles, tot_rewards, c='g')
-                ax0.set_title("Start Angle vs Episode Length",fontweight='bold',fontsize = 15)
+                mask = abs(self.test_angles * 180/np.pi) < 12
+                masked_results = np.ma.array(tot_time,mask = ~mask)
+
+                fig, ax0 = plt.subplots(figsize=(6,4), dpi= 130, facecolor='w', edgecolor='k')
+                ax0.plot(self.test_angles * 180/np.pi,tot_time,c='g')
+                ax0.set_title("Start Angle vs Episode Length\nMean (-12 to 12 Degrees): {:.2f}".format(masked_results.mean()),fontweight='bold',fontsize = 14)
                 ax0.set_ylabel("Episode Length (Seconds)",fontweight='bold',fontsize = 12)
-                ax0.set_xlabel("Start Angle (Radians)",fontweight='bold',fontsize = 12)
+                ax0.set_xlabel("Start Angle (Degrees)",fontweight='bold',fontsize = 12)
                 ax0.grid()
-                fig.savefig('Plots/' + '_Results_' + time.strftime("%Y%m%d-%H%M%S") + '.png')
-                plt.show()
+                fig.savefig(dirname + 'Plots/Results_' + time.strftime("%Y%m%d-%H%M%S") + '.png')
+            # plt.show()
+
+        return tot_time
  
     def evaluate_MC(self) -> bool:
         return_list = []

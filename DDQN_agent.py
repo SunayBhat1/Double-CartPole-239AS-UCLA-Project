@@ -126,13 +126,13 @@ class DDQN_agent(Agent):
             masked_results = np.ma.array(tot_time,mask = ~mask)
 
             fig, ax0 = plt.subplots(figsize=(6,3.5), dpi= 130, facecolor='w', edgecolor='k')
-            ax0.plot(self.test_angles,tot_time,c='g')
+            ax0.plot(self.test_angles*180/np.pi,tot_time,c='g')
             ax0.set_title("Start Angle vs Episode Length\nMean (-12 to 12 Degrees): {:.2f}".format(masked_results.mean()),fontweight='bold',fontsize = 14)
             ax0.set_ylabel("Episode Length (Seconds)",fontweight='bold',fontsize = 12)
-            ax0.set_xlabel("Start Angle (Radians)",fontweight='bold',fontsize = 12)
+            ax0.set_xlabel("Start Angle (Degrees)",fontweight='bold',fontsize = 12)
             ax0.grid()
             fig.savefig(dirname+'Plots/Results' + time.strftime("%Y%m%d-%H%M%S") + '.png')
-            plt.show()
+            # plt.show()
         return tot_time
     
     def run_training(self, dirname: str, print_log: int) -> None:
