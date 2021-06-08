@@ -98,7 +98,7 @@ class DDQN_agent(Agent):
     
     def evaluate(self, dirname: str, plot: bool=True) -> float:
 
-        tot_rewards = np.zeros(np.shape(self.test_angles)[0])
+        tot_time = np.zeros(np.shape(self.test_angles)[0])
 
         for i,iAngle in tqdm(enumerate(self.test_angles),ncols=100):
             s = self.env.reset(iAngle)
@@ -120,17 +120,20 @@ class DDQN_agent(Agent):
                     break 
                 s = s2
 
-            tot_rewards[i] = duration
-        if plot: 
+            tot_time[i] = duration
+        if plot:
+            mask = abs(self.test_angles * 180/np.pi) < 12
+            masked_results = np.ma.array(tot_time,mask = ~mask)
+
             fig, ax0 = plt.subplots(figsize=(6,3.5), dpi= 130, facecolor='w', edgecolor='k')
-            ax0.plot(self.test_angles,tot_rewards,c='g')
-            ax0.set_title("Start Angle vs Episode Length",fontweight='bold',fontsize = 15)
+            ax0.plot(self.test_angles,tot_time,c='g')
+            ax0.set_title("Start Angle vs Episode Length\nMean (-12 to 12 Degrees): {:.2f}".format(masked_results.mean()),fontweight='bold',fontsize = 14)
             ax0.set_ylabel("Episode Length (Seconds)",fontweight='bold',fontsize = 12)
             ax0.set_xlabel("Start Angle (Radians)",fontweight='bold',fontsize = 12)
             ax0.grid()
             fig.savefig(dirname+'Plots/Results' + time.strftime("%Y%m%d-%H%M%S") + '.png')
             plt.show()
-        return np.mean(tot_rewards)
+        return tot_time
     
     def run_training(self, dirname: str, print_log: int) -> None:
         self.update_parameters()

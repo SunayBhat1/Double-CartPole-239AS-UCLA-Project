@@ -117,11 +117,11 @@ class AC_2agent(Agent):
         fig.savefig(dirname + 'Plots/Training_' + time.strftime("%Y%m%d-%H%M%S") + '.png')
         plt.pause(0.001)
 
-    def compute_returns(self, next_value, rewards, masks):
+    def compute_returns(self, next_value, rewards, masks,gamma):
         R = next_value
         returns = []
         for step in reversed(range(len(rewards))):
-            R = rewards[step] + self.gamma * R * masks[step]
+            R = rewards[step] + gamma * R * masks[step]
             returns.insert(0, R)
         return returns
 
@@ -158,11 +158,15 @@ class AC_2agent(Agent):
         comp_times = []
 
         start_time = time.time()
+        best_reward = 0
         for episode in tqdm(range(self.n),ncols=100):
 
             angle = (np.random.rand()*2*self.rand_angle)-self.rand_angle
         
             state1,state2 = env.reset(angle)
+
+            # state1 = np.append(state1,0)
+            # state2 = np.append(state2,0)
 
             log_probs1 = []
             log_probs2 = []
@@ -176,7 +180,7 @@ class AC_2agent(Agent):
             ep_reward = 0
 
             done = False
-
+            
             while not done:
                 state1 = torch.FloatTensor(state1)
                 state2 = torch.FloatTensor(state2)
@@ -186,6 +190,9 @@ class AC_2agent(Agent):
                 action2 = dist2.sample()
 
                 next_state1, next_state2, reward, done, info = env.step(action1,action2)
+
+                # next_state1 = np.append(next_state1,action2)
+                # next_state2 = np.append(next_state2,action1)
 
                 log_prob1 = dist1.log_prob(action1).unsqueeze(0)
                 entropy1 += dist1.entropy().mean()
@@ -198,11 +205,19 @@ class AC_2agent(Agent):
                 values1.append(value1)
                 values2.append(value2)
 
+                # print(value1,value2)
+
                 reward_train.append(torch.tensor([reward], dtype=torch.float))
                 masks.append(torch.tensor([1-done], dtype=torch.float))
 
                 state1 = next_state1
                 state2 = next_state2
+
+                gamma = self.gamma
+                # if reward > best_reward:
+                #     best_reward = reward
+                #     gamma = 1
+
 
                 ep_reward += reward
 
@@ -218,8 +233,8 @@ class AC_2agent(Agent):
             next_state2 = torch.FloatTensor(next_state2)
             next_value1 = self.critic1(next_state1)
             next_value2 = self.critic2(next_state2)
-            returns1 = self.compute_returns(next_value1, reward_train, masks)
-            returns2 = self.compute_returns(next_value2, reward_train, masks)
+            returns1 = self.compute_returns(next_value1, reward_train, masks,gamma)
+            returns2 = self.compute_returns(next_value2, reward_train, masks,gamma)
 
             log_probs1 = torch.cat(log_probs1)
             log_probs2 = torch.cat(log_probs2)
