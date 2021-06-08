@@ -46,7 +46,7 @@ args = {
 
         'replay_start_size': 1600,
 
-        'load_path': './Rainbow',
+        'load_path': './Rainbow_result',
 
         'n_step_return': 3,
         

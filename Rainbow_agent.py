@@ -156,7 +156,7 @@ class Rainbow_agent(Agent):
                 t = 0  # time step
                 while True:
                     # Uncomment to watch the behavior in a GUI window
-                    # env.render()
+                    self.env.render()
                     action = self.agent.act(obs)
                     obs, reward, done, info = self.env.step(action)
                     R += reward
