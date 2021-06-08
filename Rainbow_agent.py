@@ -11,6 +11,7 @@ from carts_poles import CartsPolesEnv
 from tqdm import tqdm
 from pfrl import agents, explorers
 from pfrl import replay_buffers, utils
+import cv2
 
 class MultiBinaryAsDiscreteAction(gym.ActionWrapper):
     """Transforms MultiBinary action space to Discrete.
@@ -118,7 +119,7 @@ class Rainbow_agent(Agent):
             self.q_func,
             self.opt,
             self.rbuf,
-            gpu=self.gpu,
+            gpu=-1,
             gamma=self.gamma,
             explorer=self.explorer,
             minibatch_size=32,
@@ -278,3 +279,27 @@ class Rainbow_agent(Agent):
 
     def phi(self, x):
         return np.asarray(x, dtype=np.float32)
+
+
+    def render_run(self,save_video = False,speed=1,fps=20) -> None:
+
+        if save_video: video_out = cv2.VideoWriter('Rainbow/Run_{}xSpeed.mp4'.format(speed), cv2.VideoWriter_fourcc(*'mp4v'), fps*speed, (2000,1400))
+        
+        angle = (np.random.rand()*2*self.rand_angle)-self.rand_angle
+        obs = self.env.reset(angle)
+        iFrame = 0
+        done = False
+        while not done:
+            if save_video and (iFrame % (100/fps) == 0): 
+                img = self.env.render('rgb_array')
+                video_out.write(img)
+            else: self.env.render()
+
+            action = self.agent.act(obs)
+            obs, _, done, info = self.env.step(action)
+            iFrame += 1
+           
+            if(info["time"]>=20): done = True
+        
+        if save_video: video_out.release()
+        self.env.close()

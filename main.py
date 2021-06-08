@@ -66,5 +66,7 @@ args = {
 #Agent=DDQN_agent(args)
 #Agent.run_training("",3000)
 Agent = Rainbow_agent(args)
-#Agent.run_training(directory, True)
-Agent.evaluate('./Plots/', True)
+Agent.load('Rainbow_result/')
+
+Agent.render_run(True)
+# Agent.evaluate('./Plots/', True)
