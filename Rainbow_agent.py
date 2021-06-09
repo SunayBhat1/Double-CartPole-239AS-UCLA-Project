@@ -11,6 +11,7 @@ from carts_poles import CartsPolesEnv
 from tqdm import tqdm
 from pfrl import agents, explorers
 from pfrl import replay_buffers, utils
+import cv2
 
 class MultiBinaryAsDiscreteAction(gym.ActionWrapper):
     """Transforms MultiBinary action space to Discrete.
@@ -66,6 +67,7 @@ class DistributionalDuelingHead(nn.Module):
 
 class Rainbow_agent(Agent):
     def __init__(self, args):
+        print(args)
         self.env = CartsPolesEnv()
         # self.train_seed = args['seed']
         self.n_step_return = args['n_step_return']
@@ -117,7 +119,7 @@ class Rainbow_agent(Agent):
             self.q_func,
             self.opt,
             self.rbuf,
-            # gpu=self.gpu,
+            gpu=-1,
             gamma=self.gamma,
             explorer=self.explorer,
             minibatch_size=32,
@@ -157,7 +159,7 @@ class Rainbow_agent(Agent):
                 t = 0  # time step
                 while True:
                     # Uncomment to watch the behavior in a GUI window
-                    # env.render()
+                    self.env.render()
                     action = self.agent.act(obs)
                     obs, reward, done, info = self.env.step(action)
                     R += reward
@@ -172,7 +174,7 @@ class Rainbow_agent(Agent):
 
                 print('[Evaluate] episode:', i, 'R:', R)
                 
-            
+            np.save(dirname + 'evaluate.npy', tot_rewards) 
             if plot: 
                 mask = abs(self.test_angles * 180/np.pi) < 12
                 masked_results = np.ma.array(tot_time,mask = ~mask)
@@ -228,7 +230,7 @@ class Rainbow_agent(Agent):
             
 
     def run_training(self, dirname: str, print_log: int):
-        self.best_performance = 0
+        best_performance = 0
         return_list = []
 
         for i in range(1, self.n_episodes + 1): 
@@ -250,19 +252,27 @@ class Rainbow_agent(Agent):
                     return_list.append(R)
                     break
             
-            if i % 100 == 0 and print_log:
-                print('episode:', i, 'R:', R)
+
+            print('episode:', i, 'R:', R)
+            #if i % 100 == 0 and print_log:
+            #    print('episode:', i, 'R:', R)
 
             if i % 100 == 0:
-                if_save = self.evaluate_MC()
-                if if_save:
+            #    if_save = self.evaluate_MC()
+            #    if if_save:
+                
+                #self.save(dirname)
+                return_save = np.array(return_list)
+                if return_save[-100:].mean()>best_performance:
+                    best_performance = return_save[-100:].mean()
                     self.save(dirname)
-
+                
+                np.save(dirname + "training_log_ep_{}.npy".format(i), return_save)
+            
             if i % 30 == 0 and print_log:
                 print('statistics:', self.agent.get_statistics())
         
         print('Finished.')
-
 
     def save(self, dirname: str) -> None:
         self.agent.save(dirname)
@@ -276,3 +286,27 @@ class Rainbow_agent(Agent):
 
     def phi(self, x):
         return np.asarray(x, dtype=np.float32)
+
+
+    def render_run(self,save_video = False,speed=1,fps=20) -> None:
+
+        if save_video: video_out = cv2.VideoWriter('Rainbow/Run_{}xSpeed.mp4'.format(speed), cv2.VideoWriter_fourcc(*'mp4v'), fps*speed, (2000,1400))
+        
+        angle = (np.random.rand()*2*self.rand_angle)-self.rand_angle
+        obs = self.env.reset(angle)
+        iFrame = 0
+        done = False
+        while not done:
+            if save_video and (iFrame % (100/fps) == 0): 
+                img = self.env.render('rgb_array')
+                video_out.write(img)
+            else: self.env.render()
+
+            action = self.agent.act(obs)
+            obs, _, done, info = self.env.step(action)
+            iFrame += 1
+           
+            if(info["time"]>=20): done = True
+        
+        if save_video: video_out.release()
+        self.env.close()

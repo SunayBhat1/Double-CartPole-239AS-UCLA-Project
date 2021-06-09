@@ -1,4 +1,4 @@
-from DQN_agent import DQN_agent
+#from DQN_agent import DQN_agent
 from DDQN_agent import DDQN_agent
 from Rainbow_agent import Rainbow_agent
 from AC_agent import AC_agent
@@ -12,9 +12,11 @@ args = {
         "n_episode" : 3000, # All
         # Default 0.99
         "gamma" : 0.99, # All
-        # Default 0.2
+        
+        "n_episode" : 3000, # All
+
         "rand_angle" : 0.2, # All
-        # Default: 100
+
         "mean_window" : 100, # All
         # Default: 200
         "horizon" : 200, # All
@@ -27,7 +29,7 @@ args = {
         # Default: 50000
         "capacity" : 50000, # DQN, DDQN
         # Default: 50
-        "max_episode" : 50, # DQN, DDQN
+        "max_episode" : 200, # DQN, DDQN
         # Default: 0.01
         "min_eps" : 0.01, # DQN, DDQN
         # Default: 128
@@ -44,10 +46,20 @@ args = {
 
         'load_path': '/Rainbow/model.pt',
 
-        'steps': 100
+        'steps': 100,
+    
+        'seed': 100,
+
+        'gpu': 0,
+
+        'replay_start_size': 1600,
+
+        'load_path': './Rainbow_result',
+
+        'n_step_return': 3,
+        
+        'steps': 2 * 10 ** 6
     }
-
-
 
 # # Rainbow Agent
 # Agent=Rainbow_agent(args)
