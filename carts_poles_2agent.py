@@ -56,6 +56,8 @@ class CartsPoles2Env(gym.Env):
         self.seed()
         self.viewer = None
         self.state = None
+        self.state1 = None
+        self.state2 = None
 
         self.steps_beyond_done = None
 
@@ -183,8 +185,10 @@ class CartsPoles2Env(gym.Env):
 
         if self.infostate == 'full':
             self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
-            
+            self.state1 = self.state
+            self.state2 = self.state
         else:
+            self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
             self.state1 = (x1, x1_dot, t1, w1, tp, wp, xp, yp)
             self.state2 = (x2, x2_dot, t2, w2, tp, wp, xp, yp)
 
@@ -207,21 +211,30 @@ class CartsPoles2Env(gym.Env):
         # action is the force to two carts, [f1, f2]
         # f1 can be either [1, -1 , 0]
 
-        # abs(np.cos(tp))
         if not done:
             reward = self.dt
-            if self.time>10:
-                reward=reward*2
-            elif self.time>100:
-                reward=reward*10
-             #abs(np.cos(tp))*self.dt
+            if self.time > 0.5:
+                reward *= 2
+            elif self.time > 0.6:
+                reward *= 3
+            elif self.time > 0.8:
+                reward *= 5
+            elif self.time > 1:
+                reward *= 10
+            elif self.time > 1.3:
+                reward *= 15
+            elif self.time > 1.5:
+                reward *= 30
+            elif self.time > 4:
+                reward *= 100
+
             self.time=self.time+self.dt
+
+            # reward = 0
         else:
             reward = 0
-        if self.infostate == 'full':
-            return np.array(self.state), reward, done, {'time':self.time}
-        else:
-            return np.array(self.state1), np.array(self.state2), reward, done, {'time':self.time}
+
+        return np.array(self.state1), np.array(self.state2), reward, done, {'time':self.time}
 
 
     def reset(self,angle=0):
@@ -247,14 +260,14 @@ class CartsPoles2Env(gym.Env):
 
         if self.infostate == 'full':
             self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
-            return np.array(self.state)
-        
+            self.state1 = self.state
+            self.state2 = self.state
         else:
+            self.state = (x1, x1_dot, x2, x2_dot, t1, w1, t2, w2, tp, wp, xp, yp)
             self.state1 = (x1, x1_dot, t1, w1, tp, wp, xp, yp)
             self.state2 = (x2, x2_dot, t2, w2, tp, wp, xp, yp)
-            return np.array(self.state1), np.array(self.state2)
-
-            
+        
+        return np.array(self.state1), np.array(self.state2)
 
     def render(self, mode="human"):
         
@@ -301,8 +314,7 @@ class CartsPoles2Env(gym.Env):
             pend3.add_attr(self.pendtrans3)
             self.viewer.add_geom(pend3)
 
-        if self.state is None:
-            return None
+        if self.state is None: return None
         
         self.groundtrans.set_translation(screen_width / 2.0,screen_height / 2.0)
         cur_state= self.state

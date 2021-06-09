@@ -17,21 +17,15 @@ class Agent(object, metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def load(self, dirname: str) -> None:
+    def load(self, dirname: str, file_ext: str) -> None:
         """ Load in the network for this class
         """
         raise NotImplementedError()
-    
-    # @abstractmethod
-    # def evaluate_MC(self) -> bool:
-    #     """ Return the performance of the agent 
-    #     that suffices to save the network
-    #     """
-    #     raise NotImplementedError()
-    
+     
     @abstractmethod
-    def evaluate(self, dirname: str, plot: bool) -> None:
-        """ Return the performance of the agent over all the angles in the range
+    def evaluate(self, dirname: str, plot: bool) -> float:
+        """ 
+        Return the performance of the agent over all the angles in the range
         """
         raise NotImplementedError()
 
@@ -41,25 +35,14 @@ class Agent(object, metaclass=ABCMeta):
             save agents that pass evaluate
         """
         raise NotImplementedError()
+
+    @abstractmethod
+    def render_run(self, dirname:str, save_video: bool, iters: int) -> None:
+        """ 
+        Run a single episode with render (random angle)
+        """
+        raise NotImplementedError()
     
-    @classmethod
-    # @abstractmethod
-    def plot_training(self, rewards, mean_window,method,dirname) -> None:
-        
-        fig, (ax1, ax2) = plt.subplots(1, 2,figsize=(10,4.5), dpi= 120, facecolor='w', edgecolor='k')
-        ax1.plot(range(0,len(rewards)),rewards)
-        ax2.plot(range(mean_window-1,len(rewards)), np.convolve(rewards, np.ones(mean_window)/mean_window, mode='valid'),c='m')
-        ax1.set_title("Rewards vs Episode",fontweight='bold',fontsize = 11)
-        ax2.set_title("{} Avg Rewards vs Episode".format(mean_window),fontweight='bold',fontsize = 11)
-        fig.suptitle('Training Performance\n\n',fontweight='bold',fontsize = 14)
-        ax1.set_xlabel('Episode',fontweight='bold',fontsize = 8)
-        ax1.set_ylabel('Episode Rewards',fontweight='bold',fontsize = 8)
-        ax2.set_xlabel('Last Episode',fontweight='bold',fontsize = 8)
-        ax2.set_ylabel('Mean 100 Rewards',fontweight='bold',fontsize = 8)
-        ax1.grid()
-        ax2.grid()
-        fig.savefig(dirname + 'Plots/' + method + '_Training_' + time.strftime("%Y%m%d-%H%M%S") + '.png')
-        plt.pause(0.001)
 
 class Memory:
     def __init__(self, len):

@@ -122,7 +122,7 @@ class DQN_agent(Agent):
         loss.backward()
         self.optim.step()
 
-    def run_training(self, dirname: str, print_log: int) -> list[any, any]:
+    def run_training(self, dirname: str, print_log: int) -> None:
         rewards = np.zeros(self.n_episode)
         times = np.zeros(self.n_episode)
         replay_memory = Memory(self.capacity)
@@ -162,6 +162,9 @@ class DQN_agent(Agent):
 
     def save(self, dirname: str) -> None:
         torch.save(self.dqn.state_dict(), dirname)
+
+    def render_run(self, dirname: str) -> None:
+        print('do Nothing')
     
     def load(self, dirname: str) -> None:
         model=torch.load(dirname)
@@ -173,7 +176,7 @@ class DQN_agent(Agent):
     def evaluate(self,plot: bool) -> bool:
         env = CartsPolesEnv()
 
-        tot_rewards = np.zeros(np.shape(self.test_angles)[0])
+        tot_time = np.zeros(np.shape(self.test_angles)[0])
 
         for i,iAngle in enumerate(tqdm(self.test_angles)):
             s = env.reset(iAngle)
@@ -195,17 +198,21 @@ class DQN_agent(Agent):
                     break 
                 s = s2
 
-            tot_rewards[i] = duration
+            tot_time[i] = duration
             env.close()
         if plot: 
+            mask = abs(self.test_angles * 180/np.pi) < 12
+            masked_results = np.ma.array(tot_time,mask = ~mask)
+
             fig, ax0 = plt.subplots(figsize=(6,3.5), dpi= 130, facecolor='w', edgecolor='k')
-            ax0.plot(self.test_angles,tot_rewards,c='g')
-            ax0.set_title("Start Angle vs Episode Length",fontweight='bold',fontsize = 15)
+            ax0.plot(self.test_angles*180/np.pi,tot_time,c='g')
+            ax0.set_title("Start Angle vs Episode Length\nMean (-12 to 12 Degrees): {:.2f}".format(masked_results.mean()),fontweight='bold',fontsize = 14)
             ax0.set_ylabel("Episode Length (Seconds)",fontweight='bold',fontsize = 12)
-            ax0.set_xlabel("Start Angle (Radians)",fontweight='bold',fontsize = 12)
+            ax0.set_xlabel("Start Angle (Degrees)",fontweight='bold',fontsize = 12)
             ax0.grid()
-            fig.savefig('Plots/' + '_Results_' + time.strftime("%Y%m%d-%H%M%S") + '.png')
-            plt.show()
+            fig.savefig('DQN/Plots/Results_' + time.strftime("%Y%m%d-%H%M%S") + '.png')
+            # plt.show()
+        return tot_time
 
     def get_Q(self, states: np.ndarray) -> torch.FloatTensor:
         """Returns `Q-value`
