@@ -5,8 +5,6 @@ from AC_agent import AC_agent
 from AC_2agent import AC_2agent
 import numpy as np
 import matplotlib.pyplot as plt
-from urllib import request
-notify = False
 
 args = {
         "n_episode" : 3000, # All
@@ -74,10 +72,10 @@ args = {
 # np.save('Results/DQN_evaluate.npy',vec_dqn)
 
 # args['hidden_dim'] = 64
-# # DDQN Agent
+# # # DDQN Agent
 # directory = "DDQN/"
 # Agent=DDQN_agent(args)
-# # Agent.run_training("",100)
+# # # Agent.run_training("",100)
 # Agent.load(directory + 'DDQN_Q1.pt',file_ext='')
 # vec_ddqn = Agent.evaluate(directory,True)
 # # Agent.render_run(directory,save_video=False)
@@ -92,13 +90,6 @@ args = {
 # # Agent.render_run(directory,True,1)
 # np.save('Results/AC_evaluate.npy',vec_ac)
 
-
-# Load Evals
-vec_rain = np.load('Results/Rainbow_evaluate.npy')
-vec_rain[vec_rain > 200]=200
-vec_ac = np.load('Results/AC_evaluate.npy')
-vec_ddqn = np.load('Results/DDQN_evaluate.npy')
-vec_dqn = np.load('Results/DQN_evaluate.npy')
 
 # Plot Results
 fig7, ((ax1,ax2),(ax3,ax4)) = plt.subplots(2,2,figsize=(6,3.5), dpi= 130, facecolor='w', edgecolor='k')
@@ -133,8 +124,6 @@ masked_results_rain.mean()))
 
 plt.show()
 
-
-
 # # Actor Critic 2-Agent Full
 # directory = "ActorCritic_2Agent_Full/"
 # Agent = AC_2agent(args,'full')
@@ -149,9 +138,3 @@ plt.show()
 # # Agent.load(directory)
 # Agent.run_training(directory,1000)
 # Agent.evaluate(directory,True)
-
-
-if notify:
-    key = "Lmdwc3Ei4h0vfiIwLA4K0"
-    message = 'Python_Script_Is_Done'
-    request.urlopen("https://maker.ifttt.com/trigger/notify/with/key/%s?value1=%s" % (key,message))
