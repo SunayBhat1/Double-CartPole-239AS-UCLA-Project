@@ -1,16 +1,16 @@
 Spring 2021 239AS Reinforcement Learning Project
 ==============================
-By: Sunay Bhat, Sam Gessow, Vahe Gyuloglyan, Yi-Chun Hung 
-Description: An extension of the classic cart pole 
+By: Sunay Bhat, Sam Gessow, Vahe Gyuloglyan, Yi-Chun Hung  
+Description: An extension of the classic cart pole  
 
 Getting Started
 ------------
-The following python libraries are needed:
--gym
--pytorch
--tqdm
--cv2
--pfrl 
+The following python libraries are needed:  
+-gym  
+-pytorch  
+-tqdm  
+-cv2  
+-pfrl  
 
 Project Organization
 ------------
